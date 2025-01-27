@@ -41,42 +41,46 @@ class ScreenshotManager:
     def capture_screenshot(self, url: str) -> str:
         """Capture website screenshot using Selenium"""
         try:
-            # Configure Chrome options
+            # Configure Chrome options for Replit environment
             chrome_options = Options()
             chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--window-size=1920,1080")
             chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--disable-extensions")
+            chrome_options.add_argument("--remote-debugging-port=9222")
 
-            # Initialize Chrome webdriver
+            # Use ChromeDriver directly
             driver = webdriver.Chrome(options=chrome_options)
 
-            print(f"Navigating to URL: {url}")
-            driver.get(url)
-            driver.implicitly_wait(5)  # Wait for page to load
+            try:
+                print(f"Navigating to URL: {url}")
+                driver.get(url)
+                driver.implicitly_wait(5)  # Wait for page to load
 
-            print("Capturing screenshot...")
-            screenshot = driver.get_screenshot_as_png()
+                print("Capturing screenshot...")
+                screenshot = driver.get_screenshot_as_png()
 
-            # Save screenshot with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = os.path.join(
-                self.screenshot_dir,
-                f"{url.replace('://', '_').replace('/', '_')}_{timestamp}.png"
-            )
+                # Save screenshot with timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = os.path.join(
+                    self.screenshot_dir,
+                    f"{url.replace('://', '_').replace('/', '_')}_{timestamp}.png"
+                )
 
-            print(f"Saving screenshot to: {filename}")
-            with open(filename, "wb") as f:
-                f.write(screenshot)
+                print(f"Saving screenshot to: {filename}")
+                with open(filename, "wb") as f:
+                    f.write(screenshot)
 
-            driver.quit()
-            return filename
+                return filename
+
+            finally:
+                driver.quit()
 
         except Exception as e:
-            print(f"Error capturing screenshot: {str(e)}")
-            raise Exception(f"Failed to capture screenshot: {str(e)}")
+            error_msg = f"Failed to capture screenshot: {str(e)}"
+            print(error_msg)
+            raise Exception(error_msg)
 
     def compare_screenshots(self, before_path: str, after_path: str) -> tuple:
         """Compare two screenshots and highlight differences"""
@@ -124,4 +128,6 @@ class ScreenshotManager:
             )
 
         except Exception as e:
-            raise Exception(f"Failed to compare screenshots: {str(e)}")
+            error_msg = f"Failed to compare screenshots: {str(e)}"
+            print(error_msg)
+            raise Exception(error_msg)
