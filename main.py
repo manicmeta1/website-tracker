@@ -153,7 +153,7 @@ with tab1:
                             st.markdown("### 📑 Crawled Pages")
 
                             # Create tabs for different views
-                            page_tabs = st.tabs(["Pages List", "Crawl Stats", "Raw Data"])
+                            page_tabs = st.tabs(["Pages List", "Crawl Stats", "Debug Info"])
 
                             with page_tabs[0]:
                                 monitored_pages = set()
@@ -191,21 +191,15 @@ with tab1:
                                     st.warning("No crawling statistics available yet.")
 
                             with page_tabs[2]:
-                                st.markdown("### Raw Crawler Data")
-                                if st.checkbox("Show raw crawler data"):
-                                    st.json(latest_change)
+                                st.markdown("### 🔍 Debug Information")
+                                st.write("Recent Changes Data:", recent_changes)
+                                st.write("Pages Found:", monitored_pages if 'monitored_pages' in locals() else "No pages data")
+
+                                # Show crawler logs
+                                if st.checkbox("Show Crawler Logs", key=f"show_logs_{website['url']}"):
+                                    st.code("\n".join(str(log) for log in scraper.get_logs()))
                         else:
                             st.warning("No crawl data available. Try forcing a new crawl.")
-
-                    # Debug information moved to its own section
-                    with st.expander("🔍 Debug Information", expanded=False):
-                        st.markdown("### Detailed Debug Data")
-                        st.write("Recent Changes Data:", recent_changes)
-                        st.write("Pages Found:", monitored_pages if 'monitored_pages' in locals() else "No pages data")
-
-                        # Show crawler logs
-                        if st.checkbox("Show Crawler Logs"):
-                            st.code("\n".join(str(log) for log in scraper.get_logs()))
 
                     # Recent Changes
                     website_changes = [c for c in all_changes if c['url'] == website['url']]
