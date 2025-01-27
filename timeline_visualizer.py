@@ -104,9 +104,65 @@ class TimelineVisualizer:
         # Display significance legend with tooltips
         self._show_significance_legend()
 
+        # Get unique websites and pages
+        websites = sorted(list(set(change.get('url', 'Unknown') for change in changes)))
+
+        # Add filters at the top
+        col1, col2, col3 = st.columns([2, 1, 1])
+
+        with col1:
+            selected_website = st.selectbox(
+                "Select Website",
+                ["All Websites"] + websites,
+                key="timeline_website_filter"
+            )
+
+        # Convert timestamps to datetime objects for filtering
+        for change in changes:
+            if isinstance(change['timestamp'], str):
+                change['timestamp'] = datetime.fromisoformat(change['timestamp'].replace('Z', '+00:00'))
+
+        # Get date range for the changes
+        all_dates = [change['timestamp'] for change in changes]
+        min_date = min(all_dates).date() if all_dates else datetime.now().date()
+        max_date = max(all_dates).date() if all_dates else datetime.now().date()
+
+        with col2:
+            start_date = st.date_input(
+                "Start Date",
+                value=min_date,
+                min_value=min_date,
+                max_value=max_date,
+                key="timeline_start_date"
+            )
+
+        with col3:
+            end_date = st.date_input(
+                "End Date",
+                value=max_date,
+                min_value=min_date,
+                max_value=max_date,
+                key="timeline_end_date"
+            )
+
+        # Filter changes based on selection
+        filtered_changes = changes
+        if selected_website != "All Websites":
+            filtered_changes = [c for c in filtered_changes if c.get('url') == selected_website]
+
+        # Filter by date range
+        filtered_changes = [
+            c for c in filtered_changes
+            if start_date <= c['timestamp'].date() <= end_date
+        ]
+
+        if not filtered_changes:
+            st.info("No changes found for the selected filters.")
+            return
+
         # Group changes by URL
         changes_by_url = {}
-        for change in changes:
+        for change in filtered_changes:
             url = change.get('url', 'Unknown')
             if url not in changes_by_url:
                 changes_by_url[url] = []
@@ -137,7 +193,7 @@ class TimelineVisualizer:
                         f'<p><strong>Significance:</strong> {score} ({self._get_significance_label(score)})</p>'
                         f'</div>',
                         unsafe_allow_html=True,
-                        help=tooltip  # Add tooltip to the change card
+                        help=tooltip
                     )
 
                     # Show analysis in columns with tooltips
