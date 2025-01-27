@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "type": "text_change",
+    "location": "Product Page",
+    "before": "Original product description",
+    "after": "Updated product description with new features",
+    "url": "https://demo-store.com/products",
+    "timestamp": "2025-01-27T14:33:58.128299"
+  },
+  {
+    "type": "text_change",
+    "location": "Product Page",
+    "before": "Original product description",
+    "after": "Updated product description with new features",
+    "url": "https://demo-store.com/products",
+    "timestamp": "2025-01-27T14:33:27.564987"
+  },
+  {
+    "type": "text_change",
+    "location": "Homepage",
+    "before": "Welcome to our store",
+    "after": "Welcome to our updated store",
+    "url": "https://demo-store.com",
+    "timestamp": "2025-01-27T14:33:58.110943"
+  },
+  {
+    "type": "menu_structure_change",
+    "location": "Navigation Menu",
+    "before": "- Home\n- Products\n- Contact",
+    "after": "- Home\n- Products\n- About Us\n- Contact",
+    "url": "https://demo-store.com",
+    "timestamp": "2025-01-27T14:33:27.563968"
+  },
+  {
+    "type": "text_change",
+    "location": "Homepage",
+    "before": "Welcome to our store",
+    "after": "Welcome to our updated store",
+    "url": "https://demo-store.com",
+    "timestamp": "2025-01-27T14:33:27.563283"
+  },
+  {
+    "type": "menu_structure_change",
+    "location": "Navigation Menu",
+    "before": "- Home\n- Products\n- Contact",
+    "after": "- Home\n- Products\n- About Us\n- Contact",
+    "url": "https://demo-store.com",
+    "timestamp": "2025-01-27T14:33:58.119803"
+  }
+]
