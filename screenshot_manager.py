@@ -50,25 +50,8 @@ class ScreenshotManager:
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--disable-extensions")
 
-            # Use system Chrome and ChromeDriver
-            chrome_binary = "/usr/bin/chromium"
-            chromedriver_path = "/usr/bin/chromedriver"
-
-            if os.path.exists(chrome_binary):
-                chrome_options.binary_location = chrome_binary
-                print(f"Using Chrome binary at: {chrome_binary}")
-            else:
-                print("Warning: Chrome binary not found at expected location")
-
-            if os.path.exists(chromedriver_path):
-                print(f"Using ChromeDriver at: {chromedriver_path}")
-                service = ChromeService(executable_path=chromedriver_path)
-            else:
-                print("Warning: ChromeDriver not found at expected location")
-                service = ChromeService()
-
-            print("Initializing Chrome WebDriver...")
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+            # Initialize Chrome webdriver
+            driver = webdriver.Chrome(options=chrome_options)
 
             print(f"Navigating to URL: {url}")
             driver.get(url)
@@ -92,7 +75,7 @@ class ScreenshotManager:
             return filename
 
         except Exception as e:
-            print(f"Error details: {str(e)}")
+            print(f"Error capturing screenshot: {str(e)}")
             raise Exception(f"Failed to capture screenshot: {str(e)}")
 
     def compare_screenshots(self, before_path: str, after_path: str) -> tuple:
