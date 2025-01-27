@@ -142,32 +142,32 @@ class DiffVisualizer:
         """Display the diff visualization in Streamlit with advanced options"""
         st.markdown("### Change Details")
 
-        # Diff options in sidebar
-        with st.expander("Diff Visualization Options", expanded=False):
-            col1, col2 = st.columns(2)
+        # Diff options section using columns instead of expander
+        st.markdown("#### Visualization Options")
+        col1, col2 = st.columns(2)
 
-            with col1:
-                # View mode selection
-                view_mode = st.radio(
-                    "View Mode",
-                    ['inline', 'side-by-side'],
-                    key='diff_view_mode'
-                )
+        with col1:
+            # View mode selection
+            view_mode = st.radio(
+                "View Mode",
+                ['inline', 'side-by-side'],
+                key='diff_view_mode'
+            )
 
-                # Comparison level
-                char_level = st.checkbox(
-                    "Character-level comparison",
-                    key='char_level_diff',
-                    help="Compare character by character instead of word by word"
-                )
+            # Comparison level
+            char_level = st.checkbox(
+                "Character-level comparison",
+                key='char_level_diff',
+                help="Compare character by character instead of word by word"
+            )
 
-            with col2:
-                # Color scheme selection
-                self.current_scheme = st.selectbox(
-                    "Color Scheme",
-                    options=list(self.color_schemes.keys()),
-                    key='color_scheme'
-                )
+        with col2:
+            # Color scheme selection
+            self.current_scheme = st.selectbox(
+                "Color Scheme",
+                options=list(self.color_schemes.keys()),
+                key='color_scheme'
+            )
 
         # Calculate and display statistics
         stats = self.get_diff_stats(before, after)
