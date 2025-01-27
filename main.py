@@ -138,13 +138,28 @@ with tab1:
                             # Get unique pages from recent changes
                             monitored_pages = set()
                             for change in recent_changes:
+                                # Debug logging
+                                print(f"Processing change: {change.get('type')} with data: {change}")
+
                                 # Check for both old and new page storage formats
                                 if 'monitored_pages' in change:
+                                    print(f"Found monitored_pages: {change['monitored_pages']}")
                                     for page in change['monitored_pages']:
                                         monitored_pages.add((page['url'], page.get('location', 'Unknown')))
                                 elif 'pages' in change:
+                                    print(f"Found pages: {change['pages']}")
                                     for page in change['pages']:
-                                        monitored_pages.add((page['url'], page.get('location', 'Unknown')))
+                                        if isinstance(page, dict):
+                                            monitored_pages.add((page.get('url', 'Unknown'), page.get('location', 'Unknown')))
+                                        elif isinstance(page.get('content'), dict):
+                                            monitored_pages.add((page['content'].get('url', 'Unknown'), page.get('location', 'Unknown')))
+
+                            # Debug information
+                            if st.checkbox("Show Debug Info", key=f"debug_{website['url']}"):
+                                st.markdown("### 🔍 Debug Information")
+                                st.write("Recent Changes:", recent_changes)
+                                st.write("\nMonitored Pages Found:", list(monitored_pages))
+                                st.markdown("---")
 
                             if monitored_pages:
                                 with st.expander("📑 Monitored Pages", expanded=True):
