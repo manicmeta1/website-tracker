@@ -2,7 +2,7 @@ import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
 from PIL import Image, ImageDraw
 import io
 from datetime import datetime, timedelta
@@ -43,24 +43,29 @@ class ScreenshotManager:
         try:
             # Configure Chrome options
             chrome_options = Options()
-            chrome_options.add_argument("--headless=new")  # Updated headless flag
+            chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--window-size=1920,1080")
             chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--disable-software-rasterizer")
             chrome_options.add_argument("--disable-extensions")
-            chrome_options.add_argument("--disable-setuid-sandbox")
-            chrome_options.add_argument("--disable-web-security")
 
-            # Set Chrome binary location for Replit environment
-            chrome_binary = "/nix/store/zi4f80l169xlmivz8vwlphq74qqk0-chromium-125.0.6422.141/bin/chromium"
+            # Use system Chrome and ChromeDriver
+            chrome_binary = "/usr/bin/chromium"
+            chromedriver_path = "/usr/bin/chromedriver"
+
             if os.path.exists(chrome_binary):
                 chrome_options.binary_location = chrome_binary
+                print(f"Using Chrome binary at: {chrome_binary}")
+            else:
+                print("Warning: Chrome binary not found at expected location")
 
-            # Initialize WebDriver with specific ChromeDriver version
-            driver_manager = ChromeDriverManager()
-            service = Service(driver_manager.install())
+            if os.path.exists(chromedriver_path):
+                print(f"Using ChromeDriver at: {chromedriver_path}")
+                service = ChromeService(executable_path=chromedriver_path)
+            else:
+                print("Warning: ChromeDriver not found at expected location")
+                service = ChromeService()
 
             print("Initializing Chrome WebDriver...")
             driver = webdriver.Chrome(service=service, options=chrome_options)
