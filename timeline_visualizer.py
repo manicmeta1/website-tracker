@@ -50,6 +50,16 @@ class TimelineVisualizer:
                     unsafe_allow_html=True
                 )
 
+    def _hex_to_rgba(self, hex_color: str, alpha: float = 0.1) -> str:
+        """Convert hex color to rgba format"""
+        # Remove '#' if present
+        hex_color = hex_color.lstrip('#')
+        # Convert hex to RGB values
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return f'rgba({r}, {g}, {b}, {alpha})'
+
     def visualize_timeline(self, changes: List[Dict[str, Any]]):
         """Create an interactive timeline visualization of changes"""
         if not changes:
@@ -73,11 +83,12 @@ class TimelineVisualizer:
                 for change in sorted(url_changes, key=lambda x: x['timestamp'], reverse=True):
                     score = change.get('significance_score', 5)
                     color = self._get_significance_color(score)
+                    bg_color = self._hex_to_rgba(color)
 
                     # Create change card with colored border
                     st.markdown(
                         f'<div style="border-left: 5px solid {color}; padding: 10px; margin: 10px 0; '
-                        f'background-color: rgba({",".join(str(int(c.lstrip("#")[i:i+2], 16)) for i in (0, 2, 4))}, 0.1);">'
+                        f'background-color: {bg_color};">'
                         f'<h4>{change["type"].replace("_", " ").title()}</h4>'
                         f'<p><strong>Time:</strong> {change["timestamp"]}</p>'
                         f'<p><strong>Location:</strong> {change["location"]}</p>'
@@ -101,23 +112,8 @@ class TimelineVisualizer:
                             self.diff_visualizer.visualize_diff(
                                 change['before'],
                                 change['after'],
-                                key_prefix=f"change_{change['timestamp']}"
+                                f"change_{change['timestamp']}"
                             )
-
-    def _prepare_timeline_data(self, changes: List[Dict[str, Any]]) -> pd.DataFrame:
-        """Convert changes data to a DataFrame for timeline visualization"""
-        timeline_data = []
-        for change in changes:
-            timeline_data.append({
-                'timestamp': datetime.fromisoformat(change['timestamp']),
-                'type': change['type'],
-                'location': change['location'],
-                'url': change.get('url', 'Unknown'),
-                'page_name': change.get('location', '').split('/')[-1] or 'Homepage',
-                'significance': change.get('significance_score', 0),
-                'change_data': change
-            })
-        return pd.DataFrame(timeline_data)
 
     def _get_change_icon(self, change_type: str) -> str:
         """Return an emoji icon based on change type"""
@@ -135,7 +131,22 @@ class TimelineVisualizer:
             'colors_removed': '🎨'
         }
         return icons.get(change_type, '📄')
-    
+
+    def _prepare_timeline_data(self, changes: List[Dict[str, Any]]) -> pd.DataFrame:
+        """Convert changes data to a DataFrame for timeline visualization"""
+        timeline_data = []
+        for change in changes:
+            timeline_data.append({
+                'timestamp': datetime.fromisoformat(change['timestamp']),
+                'type': change['type'],
+                'location': change['location'],
+                'url': change.get('url', 'Unknown'),
+                'page_name': change.get('location', '').split('/')[-1] or 'Homepage',
+                'significance': change.get('significance_score', 0),
+                'change_data': change
+            })
+        return pd.DataFrame(timeline_data)
+
     def _render_comparison_view(self, df: pd.DataFrame):
         """Render the comparison view tab"""
         st.markdown("### Compare Changes Across Time")
