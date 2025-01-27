@@ -80,8 +80,10 @@ class WebScraper:
     def _scrape_single_page(self, url: str) -> Dict[str, Any]:
         """Scrapes a single page and returns its content"""
         if url in self.visited_urls:
+            print(f"Skipping already visited URL: {url}")
             return None
 
+        print(f"Navigating to URL: {url}")
         self.visited_urls.add(url)
 
         try:
@@ -95,7 +97,9 @@ class WebScraper:
             soup = BeautifulSoup(html_content, 'html.parser')
 
             # Capture screenshot
+            print("Capturing screenshot...")
             screenshot_path = self.screenshot_manager.capture_screenshot(url)
+            print(f"Saving screenshot to: {screenshot_path}")
 
             # Extract text content using trafilatura
             downloaded = trafilatura.fetch_url(url)
@@ -113,6 +117,8 @@ class WebScraper:
                 if href:
                     full_url = urljoin(url, href)
                     links.append(self._normalize_url(full_url))
+
+            print(f"Found {len(links)} links on page {url}")
 
             # Create content fingerprint
             content_hash = hashlib.md5(html_content.encode()).hexdigest()
