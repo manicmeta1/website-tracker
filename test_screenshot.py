@@ -10,28 +10,32 @@ st.title("Screenshot Comparison Demo")
 # Initialize screenshot manager
 screenshot_manager = ScreenshotManager()
 
-# Add description
-st.write("""
-This demo shows how the screenshot comparison feature works. 
-It will capture screenshots of two different websites and show the visual differences between them.
+# Create two columns for the main layout
+left_col, right_col = st.columns([2, 1])
 
-The comparison highlights changes in:
-- Layout
-- Content
-- Images
-- Text
-""")
+with left_col:
+    # Add description
+    st.write("""
+    This demo shows how the screenshot comparison feature works. 
+    It will capture screenshots of two different websites and show the visual differences between them.
+
+    The comparison highlights changes in:
+    - Layout
+    - Content
+    - Images
+    - Text
+    """)
 
 # Create tabs for different demo options
-tab1, tab2 = st.tabs(["Live Comparison", "Sample Comparison"])
+tab1, tab2 = st.tabs(["Live Website Comparison", "Sample Demo"])
 
 with tab1:
+    st.header("Compare Two Websites")
     # Demo URLs - using real websites for demonstration
-    st.write("### Live Website Comparison")
     url1 = st.text_input("First Website URL", value="https://example.com")
     url2 = st.text_input("Second Website URL", value="https://httpbin.org/html")
 
-    if st.button("Compare Websites"):
+    if st.button("Compare Websites", key="compare_live"):
         with st.spinner("Capturing and comparing screenshots..."):
             try:
                 # Capture screenshots
@@ -76,21 +80,21 @@ with tab1:
 
             except Exception as e:
                 st.error(f"Error during comparison: {str(e)}")
-                st.info("Please try the Sample Comparison tab to see how the feature works.")
+                st.info("Please try the Sample Demo tab to see how the feature works.")
 
 with tab2:
-    st.write("### Sample Comparison Demo")
+    st.header("Sample Visual Comparison")
     st.write("""
-    This is a demonstration using pre-captured screenshots to show how the comparison works
-    even when live capture might fail due to website restrictions.
+    This demo shows how the comparison feature works using sample images, 
+    without needing to capture live websites.
     """)
 
-    if st.button("Show Sample Comparison"):
+    # Add a prominent button for sample comparison
+    if st.button("▶️ Run Sample Comparison Demo", type="primary", key="sample_demo"):
         try:
             # Create sample images for demonstration
             def create_sample_image(text, color):
                 img = Image.new('RGB', (400, 300), 'white')
-                from PIL import ImageDraw, ImageFont
                 draw = ImageDraw.Draw(img)
                 draw.text((100, 150), text, fill=color)
                 return img
@@ -98,12 +102,6 @@ with tab2:
             # Create sample images
             img1 = create_sample_image("Original Content", "black")
             img2 = create_sample_image("Updated Content", "blue")
-
-            # Convert to base64
-            def img_to_base64(img):
-                buffered = io.BytesIO()
-                img.save(buffered, format="PNG")
-                return base64.b64encode(buffered.getvalue()).decode()
 
             # Save temporary files for comparison
             img1.save("temp_before.png")
@@ -120,11 +118,11 @@ with tab2:
 
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.write("**Sample Before:**")
+                st.write("**Before:**")
                 st.image(f"data:image/png;base64,{before_img}", use_column_width=True)
 
             with col2:
-                st.write("**Sample After:**")
+                st.write("**After:**")
                 st.image(f"data:image/png;base64,{after_img}", use_column_width=True)
 
             with col3:
@@ -138,6 +136,7 @@ with tab2:
         except Exception as e:
             st.error(f"Error in sample comparison: {str(e)}")
 
+# How it works section at the bottom
 st.write("---")
 st.write("""
 ### How it works
