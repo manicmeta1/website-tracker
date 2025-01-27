@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Any
 from diff_visualizer import DiffVisualizer
+from data_manager import DataManager  # Import the actual DataManager
 
 class TimelineVisualizer:
     def __init__(self):
@@ -350,12 +351,3 @@ class TimelineVisualizer:
             st.markdown("#### Website Activity")
             website_activity = df['url'].value_counts()
             st.bar_chart(website_activity)
-
-class DataManager: # Added DataManager class -  This is a placeholder,  you'll need to implement this based on your actual data source.
-    def get_website_configs(self):
-        # Replace this with your actual data retrieval logic
-        return [
-            {'url': 'https://www.example.com'},
-            {'url': 'https://www.example2.com'},
-            {'url': 'https://www.anotherwebsite.com'}
-        ]
