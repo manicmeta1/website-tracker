@@ -6,7 +6,7 @@ from diff_visualizer import DiffVisualizer
 
 class TimelineVisualizer:
     def __init__(self):
-        self.diff_visualizer = DiffVisualizer()
+        self.diff_visualizer = DiffVisualizer(key_prefix="timeline")
 
     def _prepare_timeline_data(self, changes: List[Dict[str, Any]]) -> pd.DataFrame:
         """Convert changes data to a DataFrame for timeline visualization"""

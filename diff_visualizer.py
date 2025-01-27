@@ -6,8 +6,9 @@ import base64
 from io import BytesIO
 
 class DiffVisualizer:
-    def __init__(self):
+    def __init__(self, key_prefix: str = ""):
         self.dmp = diff_match_patch()
+        self.key_prefix = key_prefix
         self.color_schemes = {
             "Default": {
                 "deletion": "#ffb3b3",
@@ -26,6 +27,10 @@ class DiffVisualizer:
             }
         }
         self.current_scheme = "Default"
+
+    def _create_widget_key(self, base_key: str) -> str:
+        """Create a unique key for Streamlit widgets"""
+        return f"{self.key_prefix}_{base_key}" if self.key_prefix else base_key
 
     def _create_diff(self, text1: str, text2: str, char_level: bool = False) -> List[Tuple[int, str]]:
         """Creates diff with option for character or word level comparison"""
@@ -95,7 +100,8 @@ class DiffVisualizer:
 
     def export_diff_html(self, before: str, after: str, char_level: bool = False) -> str:
         """Export the diff as standalone HTML"""
-        if st.session_state.get('diff_view_mode') == 'side-by-side':
+        view_mode = st.session_state.get(self._create_widget_key('diff_view_mode'))
+        if view_mode == 'side-by-side':
             left_diff, right_diff = self.create_side_by_side_diff(before, after, char_level)
             html_content = f"""
             <html>
@@ -142,7 +148,7 @@ class DiffVisualizer:
         """Display the diff visualization in Streamlit with advanced options"""
         st.markdown("### Change Details")
 
-        # Diff options section using columns instead of expander
+        # Diff options section using columns
         st.markdown("#### Visualization Options")
         col1, col2 = st.columns(2)
 
@@ -151,13 +157,13 @@ class DiffVisualizer:
             view_mode = st.radio(
                 "View Mode",
                 ['inline', 'side-by-side'],
-                key='diff_view_mode'
+                key=self._create_widget_key('diff_view_mode')
             )
 
             # Comparison level
             char_level = st.checkbox(
                 "Character-level comparison",
-                key='char_level_diff',
+                key=self._create_widget_key('char_level_diff'),
                 help="Compare character by character instead of word by word"
             )
 
@@ -166,7 +172,7 @@ class DiffVisualizer:
             self.current_scheme = st.selectbox(
                 "Color Scheme",
                 options=list(self.color_schemes.keys()),
-                key='color_scheme'
+                key=self._create_widget_key('color_scheme')
             )
 
         # Calculate and display statistics
@@ -210,7 +216,7 @@ class DiffVisualizer:
             )
 
         # Export options
-        if st.button("Export as HTML"):
+        if st.button("Export as HTML", key=self._create_widget_key('export_button')):
             html_content = self.export_diff_html(before, after, char_level)
             b64 = base64.b64encode(html_content.encode()).decode()
             href = f'<a href="data:text/html;base64,{b64}" download="diff_export.html">Download HTML</a>'

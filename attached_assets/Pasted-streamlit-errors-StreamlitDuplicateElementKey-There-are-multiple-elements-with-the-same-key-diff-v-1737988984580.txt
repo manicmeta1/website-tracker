@@ -1,0 +1,28 @@
+streamlit.errors.StreamlitDuplicateElementKey: There are multiple elements with the same key='diff_view_mode'. To fix this, please make sure that the key argument is unique for each element you create.
+
+Traceback:
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 88, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 579, in code_to_exec
+    exec(code, module.__dict__)
+File "/home/runner/workspace/main.py", line 120, in <module>
+    timeline_visualizer.visualize_timeline(changes)
+File "/home/runner/workspace/timeline_visualizer.py", line 113, in visualize_timeline
+    self.diff_visualizer.visualize_diff(
+File "/home/runner/workspace/diff_visualizer.py", line 151, in visualize_diff
+    view_mode = st.radio(
+                ^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/metrics_util.py", line 409, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/elements/widgets/radio.py", line 269, in radio
+    return self._radio(
+           ^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/elements/widgets/radio.py", line 317, in _radio
+    element_id = compute_and_register_element_id(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/elements/lib/utils.py", line 226, in compute_and_register_element_id
+    _register_element_id(ctx, element_type, element_id)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/elements/lib/utils.py", line 127, in _register_element_id
+    raise StreamlitDuplicateElementKey(user_key)

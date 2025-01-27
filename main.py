@@ -16,8 +16,8 @@ data_manager = DataManager()
 scraper = WebScraper()
 change_detector = ChangeDetector()
 notifier = EmailNotifier()
-diff_visualizer = DiffVisualizer()
-timeline_visualizer = TimelineVisualizer()
+diff_visualizer = DiffVisualizer(key_prefix="demo")  # Add key prefix for demo visualizer
+timeline_visualizer = TimelineVisualizer()  # Timeline visualizer has its own prefixed diff_visualizer
 
 # Initialize scheduler
 scheduler = BackgroundScheduler()
