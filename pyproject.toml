@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "apscheduler>=3.11.0",
     "beautifulsoup4>=4.12.3",
+    "diff-match-patch>=20241021",
     "pandas>=2.2.3",
     "requests>=2.32.3",
     "streamlit>=1.41.1",

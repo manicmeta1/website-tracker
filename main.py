@@ -7,12 +7,14 @@ from change_detector import ChangeDetector
 from notifier import EmailNotifier
 from data_manager import DataManager
 from apscheduler.schedulers.background import BackgroundScheduler
+from diff_visualizer import DiffVisualizer
 
 # Initialize components
 data_manager = DataManager()
 scraper = WebScraper()
 change_detector = ChangeDetector()
 notifier = EmailNotifier()
+diff_visualizer = DiffVisualizer()
 
 # Initialize scheduler
 scheduler = BackgroundScheduler()
@@ -113,18 +115,24 @@ else:
     for url, site_changes in website_changes.items():
         with st.expander(f"Changes for {url}"):
             for change in site_changes:
+                # Change metadata
                 st.write(f"Detected on {change['timestamp']}")
                 st.write("Type:", change['type'])
                 st.write("Location:", change['location'])
 
-                # Display diff
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.subheader("Before")
-                    st.text(change['before'])
-                with col2:
-                    st.subheader("After")
-                    st.text(change['after'])
+                # Calculate and display change statistics
+                stats = diff_visualizer.get_diff_stats(change['before'], change['after'])
+                st.write("Change Statistics:")
+                stat_cols = st.columns(3)
+                with stat_cols[0]:
+                    st.metric("Characters Added", stats['chars_added'])
+                with stat_cols[1]:
+                    st.metric("Characters Removed", stats['chars_removed'])
+                with stat_cols[2]:
+                    st.metric("Total Changes", stats['total_changes'])
+
+                # Advanced diff visualization
+                diff_visualizer.visualize_diff(change['before'], change['after'])
                 st.divider()
 
 # Manual check button
