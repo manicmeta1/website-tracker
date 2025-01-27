@@ -6,71 +6,63 @@ from typing import Tuple, List
 class DiffVisualizer:
     def __init__(self):
         self.dmp = diff_match_patch()
-        
-    def create_diff_html(self, text1: str, text2: str) -> Tuple[str, str]:
+
+    def create_inline_diff(self, text1: str, text2: str) -> str:
         """
-        Creates HTML for side-by-side diff visualization with highlighting
+        Creates an inline diff visualization with word-level highlighting
         """
-        # Compute diffs
         diffs = self.dmp.diff_main(text1, text2)
         self.dmp.diff_cleanupSemantic(diffs)
-        
-        # Generate HTML for both sides
-        left_html = []
-        right_html = []
-        
+
+        html_parts = []
         for op, text in diffs:
             text = html.escape(text)
-            
             if op == 0:  # Equal
-                left_html.append(f'<span style="color: #666">{text}</span>')
-                right_html.append(f'<span style="color: #666">{text}</span>')
+                html_parts.append(text)
             elif op == -1:  # Deletion
-                left_html.append(f'<span style="background-color: #ffd7d7">{text}</span>')
+                html_parts.append(f'<span style="background-color: #ffb3b3; text-decoration: line-through;">{text}</span>')
             elif op == 1:  # Insertion
-                right_html.append(f'<span style="background-color: #d7ffd7">{text}</span>')
-                
-        return ''.join(left_html), ''.join(right_html)
-    
+                html_parts.append(f'<span style="background-color: #b3ffb3; font-weight: bold;">{text}</span>')
+
+        return ''.join(html_parts)
+
     def visualize_diff(self, before: str, after: str):
         """
         Display the diff visualization in Streamlit
         """
-        # Create diff HTML
-        left_html, right_html = self.create_diff_html(before, after)
-        
-        # Create columns for side-by-side display
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("### Before")
-            st.markdown(
-                f'<div style="border: 1px solid #ddd; padding: 10px; '
-                f'background-color: white; font-family: monospace; '
-                f'white-space: pre-wrap;">{left_html}</div>',
-                unsafe_allow_html=True
-            )
-            
-        with col2:
-            st.markdown("### After")
-            st.markdown(
-                f'<div style="border: 1px solid #ddd; padding: 10px; '
-                f'background-color: white; font-family: monospace; '
-                f'white-space: pre-wrap;">{right_html}</div>',
-                unsafe_allow_html=True
-            )
-            
+        st.markdown("### Change Details")
+
+        # Create inline diff
+        inline_diff = self.create_inline_diff(before, after)
+
+        # Display diff with proper styling
+        st.markdown(
+            f'<div style="border: 1px solid #ddd; border-radius: 5px; padding: 15px; '
+            f'margin: 10px 0; background-color: white; font-family: monospace; '
+            f'line-height: 1.5; white-space: pre-wrap;">'
+            f'<div style="margin-bottom: 10px; color: #666;">'
+            f'<span style="background-color: #ffb3b3;">Removed</span> | '
+            f'<span style="background-color: #b3ffb3;">Added</span>'
+            f'</div>'
+            f'{inline_diff}</div>',
+            unsafe_allow_html=True
+        )
+
     def get_diff_stats(self, before: str, after: str) -> dict:
         """
         Calculate statistics about the changes
         """
         diffs = self.dmp.diff_main(before, after)
         self.dmp.diff_cleanupSemantic(diffs)
-        
+
+        # Count words instead of characters
+        def count_words(text: str) -> int:
+            return len(text.split())
+
         stats = {
-            'chars_added': sum(len(text) for op, text in diffs if op == 1),
-            'chars_removed': sum(len(text) for op, text in diffs if op == -1),
+            'words_added': sum(count_words(text) for op, text in diffs if op == 1),
+            'words_removed': sum(count_words(text) for op, text in diffs if op == -1),
             'total_changes': len([d for d in diffs if d[0] != 0])
         }
-        
+
         return stats

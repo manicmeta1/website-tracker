@@ -125,9 +125,9 @@ else:
                 st.write("Change Statistics:")
                 stat_cols = st.columns(3)
                 with stat_cols[0]:
-                    st.metric("Characters Added", stats['chars_added'])
+                    st.metric("Words Added", stats['words_added'])
                 with stat_cols[1]:
-                    st.metric("Characters Removed", stats['chars_removed'])
+                    st.metric("Words Removed", stats['words_removed'])
                 with stat_cols[2]:
                     st.metric("Total Changes", stats['total_changes'])
 
