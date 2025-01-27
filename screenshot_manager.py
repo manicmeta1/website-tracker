@@ -43,22 +43,33 @@ class ScreenshotManager:
         try:
             # Configure Chrome options
             chrome_options = Options()
-            chrome_options.add_argument("--headless")  # Run in headless mode
+            chrome_options.add_argument("--headless=new")  # Updated headless flag
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--window-size=1920,1080")
-            chrome_options.add_argument("--disable-gpu")  # Required for headless on some systems
+            chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--disable-software-rasterizer")
             chrome_options.add_argument("--disable-extensions")
-            chrome_options.binary_location = "/nix/store/zi4f80l169xlmivz8vwlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser"
+            chrome_options.add_argument("--disable-setuid-sandbox")
+            chrome_options.add_argument("--disable-web-security")
 
-            # Initialize WebDriver
-            service = Service(ChromeDriverManager().install())
+            # Set Chrome binary location for Replit environment
+            chrome_binary = "/nix/store/zi4f80l169xlmivz8vwlphq74qqk0-chromium-125.0.6422.141/bin/chromium"
+            if os.path.exists(chrome_binary):
+                chrome_options.binary_location = chrome_binary
+
+            # Initialize WebDriver with specific ChromeDriver version
+            driver_manager = ChromeDriverManager()
+            service = Service(driver_manager.install())
+
+            print("Initializing Chrome WebDriver...")
             driver = webdriver.Chrome(service=service, options=chrome_options)
 
-            # Capture screenshot
+            print(f"Navigating to URL: {url}")
             driver.get(url)
             driver.implicitly_wait(5)  # Wait for page to load
+
+            print("Capturing screenshot...")
             screenshot = driver.get_screenshot_as_png()
 
             # Save screenshot with timestamp
@@ -68,6 +79,7 @@ class ScreenshotManager:
                 f"{url.replace('://', '_').replace('/', '_')}_{timestamp}.png"
             )
 
+            print(f"Saving screenshot to: {filename}")
             with open(filename, "wb") as f:
                 f.write(screenshot)
 
@@ -75,6 +87,7 @@ class ScreenshotManager:
             return filename
 
         except Exception as e:
+            print(f"Error details: {str(e)}")
             raise Exception(f"Failed to capture screenshot: {str(e)}")
 
     def compare_screenshots(self, before_path: str, after_path: str) -> tuple:
