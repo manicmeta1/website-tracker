@@ -85,17 +85,24 @@ class WebScraper:
             base_domain = urlparse(url).netloc
 
             # Initialize results
-            all_content = []
+            pages_info = []
             self.visited_urls.clear()  # Reset visited URLs for new scrape
 
             # Scrape initial URL
             initial_content = self._scrape_single_page(url)
-            all_content.append(initial_content)
+            if initial_content:
+                pages_info.append({
+                    'url': url,
+                    'location': '/',  # Root page
+                    'content': initial_content
+                })
 
             # If crawling is enabled, follow links within the same domain
             if crawl_all_pages:
-                urls_to_visit = set([link for link in initial_content['links'] 
-                                   if urlparse(link).netloc == base_domain])
+                urls_to_visit = set([
+                    link for link in initial_content['links']
+                    if urlparse(link).netloc == base_domain
+                ])
 
                 while urls_to_visit and len(self.visited_urls) < 50:  # Limit to 50 pages
                     next_url = urls_to_visit.pop()
@@ -106,25 +113,44 @@ class WebScraper:
                             time.sleep(random.uniform(1, 2))
 
                             page_content = self._scrape_single_page(next_url)
-                            all_content.append(page_content)
+                            if page_content:
+                                # Extract page location from URL
+                                parsed_url = urlparse(next_url)
+                                location = parsed_url.path if parsed_url.path else '/'
 
-                            # Add new links to visit
-                            new_links = set([link for link in page_content['links']
-                                           if urlparse(link).netloc == base_domain])
-                            urls_to_visit.update(new_links - self.visited_urls)
+                                pages_info.append({
+                                    'url': next_url,
+                                    'location': location,
+                                    'content': page_content
+                                })
+
+                                # Add new links to visit
+                                new_links = set([
+                                    link for link in page_content['links']
+                                    if urlparse(link).netloc == base_domain
+                                ])
+                                urls_to_visit.update(new_links - self.visited_urls)
 
                         except Exception as e:
                             print(f"Error scraping {next_url}: {str(e)}")
                             continue
 
-            # Combine all content
+            # Create the combined content structure
             combined_content = {
                 'url': url,
-                'timestamp': all_content[0]['timestamp'],
-                'pages': all_content,  # Make sure pages data is included
-                'crawl_all_pages': crawl_all_pages
+                'timestamp': pages_info[0]['content']['timestamp'] if pages_info else None,
+                'pages': pages_info,  # Store full pages information
+                'crawl_all_pages': crawl_all_pages,
+                'content_hash': initial_content['content_hash'] if pages_info else None
             }
 
+            # Add the initial page's content fields to the root
+            if pages_info:
+                for key in ['html_content', 'text_content', 'links', 'styles', 'menu_structure', 'screenshot_path']:
+                    if key in pages_info[0]['content']:
+                        combined_content[key] = pages_info[0]['content'][key]
+
+            print(f"Scraped {len(pages_info)} pages for {url}")
             return combined_content
 
         except Exception as e:
@@ -137,50 +163,48 @@ class WebScraper:
 
         self.visited_urls.add(url)
 
-        # Get raw HTML
-        session = requests.Session()
-        response = session.get(url, headers=self.headers, timeout=30)
-        response.raise_for_status()
-        html_content = response.text
+        try:
+            # Get raw HTML
+            session = requests.Session()
+            response = session.get(url, headers=self.headers, timeout=30)
+            response.raise_for_status()
+            html_content = response.text
 
-        # Parse HTML
-        soup = BeautifulSoup(html_content, 'html.parser')
+            # Parse HTML
+            soup = BeautifulSoup(html_content, 'html.parser')
 
-        # Capture screenshot
-        screenshot_path = self.screenshot_manager.capture_screenshot(url)
+            # Capture screenshot
+            screenshot_path = self.screenshot_manager.capture_screenshot(url)
 
-        # Extract text content using trafilatura
-        downloaded = trafilatura.fetch_url(url)
-        if not downloaded:
-            raise Exception("Failed to download content")
+            # Extract text content using trafilatura
+            downloaded = trafilatura.fetch_url(url)
+            if not downloaded:
+                raise Exception("Failed to download content")
 
-        text_content = trafilatura.extract(downloaded)
-        if not text_content:
-            text_content = ' '.join([p.get_text() for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
+            text_content = trafilatura.extract(downloaded)
+            if not text_content:
+                text_content = ' '.join([p.get_text() for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
 
-        # Extract links
-        links = []
-        for a in soup.find_all('a', href=True):
-            href = a.get('href')
-            if href:
-                full_url = urljoin(url, href)
-                links.append(self._normalize_url(full_url))
+            # Extract links
+            links = []
+            for a in soup.find_all('a', href=True):
+                href = a.get('href')
+                if href:
+                    full_url = urljoin(url, href)
+                    links.append(self._normalize_url(full_url))
 
-        # Extract styles and structure
-        styles = self._extract_styles(soup)
-        menu_structure = self._extract_menu_structure(soup)
+            # Create content fingerprint
+            content_hash = hashlib.md5(html_content.encode()).hexdigest()
 
-        # Create content fingerprint
-        content_hash = hashlib.md5(html_content.encode()).hexdigest()
+            return {
+                'timestamp': response.headers.get('Date', time.strftime('%Y-%m-%d %H:%M:%S')),
+                'html_content': html_content,
+                'text_content': text_content,
+                'links': links,
+                'content_hash': content_hash,
+                'screenshot_path': screenshot_path
+            }
 
-        return {
-            'url': url,
-            'timestamp': response.headers.get('Date', time.strftime('%Y-%m-%d %H:%M:%S')),
-            'html_content': html_content,
-            'text_content': text_content,
-            'links': links,
-            'content_hash': content_hash,
-            'styles': styles,
-            'menu_structure': menu_structure,
-            'screenshot_path': screenshot_path
-        }
+        except Exception as e:
+            print(f"Error scraping page {url}: {str(e)}")
+            return None
