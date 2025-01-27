@@ -79,41 +79,50 @@ class TimelineVisualizer:
 
         # Display changes for each URL
         for url, url_changes in changes_by_url.items():
-            with st.expander(f"🌐 {url}", expanded=True):
-                for change in sorted(url_changes, key=lambda x: x['timestamp'], reverse=True):
-                    score = change.get('significance_score', 5)
-                    color = self._get_significance_color(score)
-                    bg_color = self._hex_to_rgba(color)
+            st.markdown(f"### 🌐 {url}")
 
-                    # Create change card with colored border
-                    st.markdown(
-                        f'<div style="border-left: 5px solid {color}; padding: 10px; margin: 10px 0; '
-                        f'background-color: {bg_color};">'
-                        f'<h4>{change["type"].replace("_", " ").title()}</h4>'
-                        f'<p><strong>Time:</strong> {change["timestamp"]}</p>'
-                        f'<p><strong>Location:</strong> {change["location"]}</p>'
-                        f'<p><strong>Significance:</strong> {score} ({self._get_significance_label(score)})</p>'
-                        f'</div>',
-                        unsafe_allow_html=True
+            # Sort changes by timestamp in reverse order
+            sorted_changes = sorted(url_changes, key=lambda x: x['timestamp'], reverse=True)
+
+            for change in sorted_changes:
+                score = change.get('significance_score', 5)
+                color = self._get_significance_color(score)
+                bg_color = self._hex_to_rgba(color)
+
+                # Create the main change card
+                st.markdown(
+                    f'<div style="border-left: 5px solid {color}; padding: 10px; margin: 10px 0; '
+                    f'background-color: {bg_color};">'
+                    f'<h4>{change["type"].replace("_", " ").title()}</h4>'
+                    f'<p><strong>Time:</strong> {change["timestamp"]}</p>'
+                    f'<p><strong>Location:</strong> {change["location"]}</p>'
+                    f'<p><strong>Significance:</strong> {score} ({self._get_significance_label(score)})</p>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+                # Show analysis in columns
+                if 'analysis' in change:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Impact Analysis**")
+                        st.write(f"- Category: {change['analysis'].get('impact_category', 'Unknown')}")
+                        st.write(f"- Business Relevance: {change['analysis'].get('business_relevance', 'Unknown')}")
+                    with col2:
+                        st.markdown("**Recommendations**")
+                        st.write(f"- {change['analysis'].get('recommendations', 'No recommendations available')}")
+                        st.write(f"- {change['analysis'].get('explanation', 'No explanation available')}")
+
+                # Show content changes
+                if 'before' in change and 'after' in change:
+                    st.markdown("**Content Changes**")
+                    self.diff_visualizer.visualize_diff(
+                        change['before'],
+                        change['after'],
+                        f"change_{change['timestamp']}"
                     )
 
-                    # Show change details
-                    with st.expander("View Change Details"):
-                        if 'analysis' in change:
-                            st.markdown("#### Analysis")
-                            st.write(f"**Impact Category:** {change['analysis'].get('impact_category', 'Unknown')}")
-                            st.write(f"**Business Relevance:** {change['analysis'].get('business_relevance', 'Unknown')}")
-                            st.write(f"**Explanation:** {change['analysis'].get('explanation', 'No explanation available')}")
-                            st.write(f"**Recommendations:** {change['analysis'].get('recommendations', 'No recommendations available')}")
-
-                        st.markdown("#### Content Changes")
-                        # Use diff visualizer to show content changes
-                        if 'before' in change and 'after' in change:
-                            self.diff_visualizer.visualize_diff(
-                                change['before'],
-                                change['after'],
-                                f"change_{change['timestamp']}"
-                            )
+                st.markdown("---")  # Add separator between changes
 
     def _get_change_icon(self, change_type: str) -> str:
         """Return an emoji icon based on change type"""
