@@ -7,6 +7,48 @@ from diff_visualizer import DiffVisualizer
 class TimelineVisualizer:
     def __init__(self):
         self.diff_visualizer = DiffVisualizer(key_prefix="timeline")
+        # Define color scheme for significance levels
+        self.significance_colors = {
+            'critical': '#FF4B4B',  # Red for high significance (8-10)
+            'high': '#FFA726',      # Orange for medium-high (6-7)
+            'medium': '#FDD835',    # Yellow for medium (4-5)
+            'low': '#66BB6A'        # Green for low (1-3)
+        }
+
+    def _get_significance_color(self, score: int) -> str:
+        """Return color based on significance score"""
+        if score >= 8:
+            return self.significance_colors['critical']
+        elif score >= 6:
+            return self.significance_colors['high']
+        elif score >= 4:
+            return self.significance_colors['medium']
+        else:
+            return self.significance_colors['low']
+
+    def _get_significance_label(self, score: int) -> str:
+        """Return significance label based on score"""
+        if score >= 8:
+            return "Critical"
+        elif score >= 6:
+            return "High"
+        elif score >= 4:
+            return "Medium"
+        else:
+            return "Low"
+
+    def _show_significance_legend(self):
+        """Display a legend explaining significance colors"""
+        st.markdown("#### 📊 Change Significance Legend")
+        cols = st.columns(4)
+        for i, (level, color) in enumerate(self.significance_colors.items()):
+            with cols[i]:
+                st.markdown(
+                    f'<div style="background-color: {color}; padding: 10px; '
+                    f'border-radius: 5px; color: {"black" if level in ["medium", "low"] else "white"}; '
+                    f'text-align: center;">{level.title()}</div>',
+                    unsafe_allow_html=True
+                )
 
     def _prepare_timeline_data(self, changes: List[Dict[str, Any]]) -> pd.DataFrame:
         """Convert changes data to a DataFrame for timeline visualization"""
@@ -52,6 +94,9 @@ class TimelineVisualizer:
         # Timeline header
         st.title("📅 Website Changes Timeline")
 
+        # Show significance legend
+        self._show_significance_legend()
+
         # Website and page selection
         unique_websites = df['url'].unique()
         if len(unique_websites) > 0:
@@ -84,67 +129,52 @@ class TimelineVisualizer:
                 st.subheader("📑 Pages Overview")
                 page_stats = website_df.groupby('page_name').agg({
                     'type': 'count',
+                    'significance': 'mean',
                     'timestamp': ['min', 'max']
                 }).reset_index()
-                page_stats.columns = ['Page', 'Changes', 'First Change', 'Last Change']
+                page_stats.columns = ['Page', 'Changes', 'Avg Significance', 'First Change', 'Last Change']
 
-                # Display page statistics
+                # Display page statistics with color coding
                 for _, row in page_stats.iterrows():
-                    with st.expander(f"📄 {row['Page']} ({row['Changes']} changes)"):
-                        st.write(f"First detected change: {row['First Change']}")
-                        st.write(f"Most recent change: {row['Last Change']}")
+                    significance_color = self._get_significance_color(int(row['Avg Significance']))
+                    with st.expander(
+                        f"📄 {row['Page']} ({row['Changes']} changes)", 
+                        expanded=False
+                    ):
+                        st.markdown(
+                            f'<div style="border-left: 5px solid {significance_color}; padding-left: 10px;">'
+                            f'<p><strong>Average Significance:</strong> {row["Avg Significance"]:.1f} '
+                            f'({self._get_significance_label(int(row["Avg Significance"]))})</p>'
+                            f'<p><strong>First Change:</strong> {row["First Change"]}</p>'
+                            f'<p><strong>Last Change:</strong> {row["Last Change"]}</p>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
 
                 st.divider()
 
-            # Date filter
-            min_date = filtered_df['timestamp'].min().date()
-            max_date = filtered_df['timestamp'].max().date()
-
-            start_date = st.date_input(
-                "From date",
-                value=min_date,
-                min_value=min_date,
-                max_value=max_date,
-                key="timeline_start_date"
-            )
-
-            end_date = st.date_input(
-                "To date",
-                value=max_date,
-                min_value=min_date,
-                max_value=max_date,
-                key="timeline_end_date"
-            )
-
-            # Apply date filter
-            mask = (filtered_df['timestamp'].dt.date >= start_date) & (filtered_df['timestamp'].dt.date <= end_date)
-            filtered_df = filtered_df.loc[mask]
-
-            # Display timeline overview
-            st.subheader("Timeline Overview")
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.metric("Total Changes", len(filtered_df))
-            with col2:
-                st.metric("Time Range", f"{(end_date - start_date).days + 1} days")
-
-            # Show changes over time
-            st.subheader("Changes Over Time")
-            timeline_data = filtered_df.copy()
-            timeline_data['date'] = timeline_data['timestamp'].dt.date
-            daily_changes = timeline_data.groupby('date').size().reset_index(name='count')
-            st.line_chart(data=daily_changes.set_index('date'))
-
-            # Display individual changes
+            # Display individual changes with color coding
             st.subheader("Change Details")
             for idx, change in filtered_df.iterrows():
                 change_data = change['change_data']
-                with st.expander(
-                    f"{self._get_change_icon(change['type'])} {change['timestamp'].strftime('%Y-%m-%d %H:%M:%S')} - {change['type'].replace('_', ' ').title()}"
-                ):
-                    st.write(f"**Location:** {change['location']}")
-                    st.write(f"**URL:** {change['url']}")
+                significance_color = self._get_significance_color(int(change['significance']))
+                significance_label = self._get_significance_label(int(change['significance']))
+
+                expander_label = (
+                    f"{self._get_change_icon(change['type'])} "
+                    f"{change['timestamp'].strftime('%Y-%m-%d %H:%M:%S')} - "
+                    f"{change['type'].replace('_', ' ').title()}"
+                )
+
+                with st.expander(expander_label):
+                    st.markdown(
+                        f'<div style="border-left: 5px solid {significance_color}; padding-left: 10px;">'
+                        f'<p><strong>Significance:</strong> {change["significance"]} ({significance_label})</p>'
+                        f'<p><strong>Location:</strong> {change["location"]}</p>'
+                        f'<p><strong>URL:</strong> {change["url"]}</p>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
 
                     if change['type'] == 'visual_change':
                         col1, col2, col3 = st.columns(3)
@@ -163,6 +193,21 @@ class TimelineVisualizer:
                             change_data.get('before', ''),
                             change_data.get('after', '')
                         )
+
+            # Show changes over time with significance
+            st.subheader("Changes Over Time")
+            timeline_data = filtered_df.copy()
+            timeline_data['date'] = timeline_data['timestamp'].dt.date
+
+            # Create significance categories for visualization
+            timeline_data['significance_category'] = timeline_data['significance'].apply(self._get_significance_label)
+
+            # Group by date and significance category
+            daily_changes = timeline_data.groupby(['date', 'significance_category']).size().unstack(fill_value=0)
+            st.bar_chart(daily_changes)
+
+        self._render_comparison_view(df)
+        self._render_analytics_view(df)
 
     def _render_comparison_view(self, df: pd.DataFrame):
         """Render the comparison view tab"""
