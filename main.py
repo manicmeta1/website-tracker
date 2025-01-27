@@ -131,54 +131,81 @@ with tab1:
                     </div>
                     """, unsafe_allow_html=True)
 
+                    # Crawler Status and Debug
+                    st.markdown("### 🕷️ Crawler Status")
+
+                    # Force new crawl button
+                    if st.button("Force New Crawl", key=f"force_crawl_{website['url']}"):
+                        with st.spinner("Starting new crawl..."):
+                            try:
+                                # Clear previous content to force new crawl
+                                change_detector.previous_content = None
+                                # Run crawler
+                                check_website(website['url'], website.get('crawl_all_pages', False))
+                                st.success("Crawl completed!")
+                            except Exception as e:
+                                st.error(f"Crawl failed: {str(e)}")
+
                     # Show crawled pages if full site crawling is enabled
                     if website.get('crawl_all_pages', False):
                         recent_changes = [c for c in all_changes if c['url'] == website['url']]
                         if recent_changes:
-                            # Get unique pages from recent changes
-                            monitored_pages = set()
-                            for change in recent_changes:
-                                # Debug logging
-                                print(f"Processing change: {change.get('type')} with data: {change}")
+                            st.markdown("### 📑 Crawled Pages")
 
-                                # Check for both old and new page storage formats
-                                if 'monitored_pages' in change:
-                                    print(f"Found monitored_pages: {change['monitored_pages']}")
-                                    for page in change['monitored_pages']:
-                                        monitored_pages.add((page['url'], page.get('location', 'Unknown')))
-                                elif 'pages' in change:
-                                    print(f"Found pages: {change['pages']}")
-                                    for page in change['pages']:
-                                        if isinstance(page, dict):
-                                            monitored_pages.add((page.get('url', 'Unknown'), page.get('location', 'Unknown')))
-                                        elif isinstance(page.get('content'), dict):
-                                            monitored_pages.add((page['content'].get('url', 'Unknown'), page.get('location', 'Unknown')))
+                            # Create tabs for different views
+                            page_tabs = st.tabs(["Pages List", "Crawl Stats", "Raw Data"])
 
-                            # Debug information
-                            if st.checkbox("Show Debug Info", key=f"debug_{website['url']}"):
-                                st.markdown("### 🔍 Debug Information")
-                                st.write("Recent Changes:", recent_changes)
-                                st.write("\nMonitored Pages Found:", list(monitored_pages))
-                                st.markdown("---")
+                            with page_tabs[0]:
+                                monitored_pages = set()
+                                for change in recent_changes:
+                                    if 'pages' in change:
+                                        for page in change['pages']:
+                                            if isinstance(page, dict):
+                                                url = page.get('url', 'Unknown')
+                                                location = page.get('location', 'Unknown')
+                                                monitored_pages.add((url, location))
 
-                            if monitored_pages:
-                                with st.expander("📑 Monitored Pages", expanded=True):
-                                    st.markdown("### Discovered Pages")
-                                    st.markdown("The following pages are being monitored:")
-                                    for page_url, location in sorted(monitored_pages):
+                                if monitored_pages:
+                                    st.markdown("The following pages were discovered and are being monitored:")
+                                    for url, location in sorted(monitored_pages):
                                         st.markdown(f"""
                                         <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
                                             <p style='margin: 0;'><strong>{location}</strong></p>
-                                            <p style='margin: 0; color: #666;'><small>{page_url}</small></p>
+                                            <p style='margin: 0; color: #666;'><small>{url}</small></p>
                                         </div>
                                         """, unsafe_allow_html=True)
-                            else:
-                                st.warning("Full site crawling is enabled but no pages have been discovered yet. Pages will appear here after the next crawl.")
+                                else:
+                                    st.warning("No pages have been discovered yet. Try forcing a new crawl.")
 
-                    # Debug information
-                    if st.checkbox("Show Debug Info", key=f"debug_{website['url']}"):
+                            with page_tabs[1]:
+                                st.markdown("### Crawling Statistics")
+                                latest_change = recent_changes[-1]
+                                if 'pages' in latest_change:
+                                    num_pages = len(latest_change['pages'])
+                                    st.metric("Total Pages Crawled", num_pages)
+
+                                    # Show timestamp of last crawl
+                                    last_crawl = datetime.fromisoformat(latest_change['timestamp'].replace('Z', '+00:00'))
+                                    st.metric("Last Crawl", last_crawl.strftime('%Y-%m-%d %H:%M:%S'))
+                                else:
+                                    st.warning("No crawling statistics available yet.")
+
+                            with page_tabs[2]:
+                                st.markdown("### Raw Crawler Data")
+                                if st.checkbox("Show raw crawler data"):
+                                    st.json(latest_change)
+                        else:
+                            st.warning("No crawl data available. Try forcing a new crawl.")
+
+                    # Debug information moved to its own section
+                    with st.expander("🔍 Debug Information", expanded=False):
+                        st.markdown("### Detailed Debug Data")
                         st.write("Recent Changes Data:", recent_changes)
                         st.write("Pages Found:", monitored_pages if 'monitored_pages' in locals() else "No pages data")
+
+                        # Show crawler logs
+                        if st.checkbox("Show Crawler Logs"):
+                            st.code("\n".join(str(log) for log in scraper.get_logs()))
 
                     # Recent Changes
                     website_changes = [c for c in all_changes if c['url'] == website['url']]

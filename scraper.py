@@ -21,6 +21,22 @@ class WebScraper:
         }
         self.screenshot_manager = ScreenshotManager()
         self.visited_urls = set()  # Track visited URLs to avoid duplicates
+        self._logs = []  # Store crawler logs
+
+    def _log(self, message: str):
+        """Add a log message with timestamp"""
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+        log_entry = f"[{timestamp}] {message}"
+        print(log_entry)  # Print to console
+        self._logs.append(log_entry)  # Store in logs list
+
+    def get_logs(self):
+        """Return the current logs"""
+        return self._logs
+
+    def clear_logs(self):
+        """Clear the current logs"""
+        self._logs = []
 
     def _normalize_url(self, url: str) -> str:
         """Normalize URL by adding https:// if no scheme is provided"""
@@ -80,10 +96,10 @@ class WebScraper:
     def _scrape_single_page(self, url: str) -> Dict[str, Any]:
         """Scrapes a single page and returns its content"""
         if url in self.visited_urls:
-            print(f"Skipping already visited URL: {url}")
+            self._log(f"Skipping already visited URL: {url}")
             return None
 
-        print(f"Navigating to URL: {url}")
+        self._log(f"Navigating to URL: {url}")
         self.visited_urls.add(url)
 
         try:
@@ -97,9 +113,9 @@ class WebScraper:
             soup = BeautifulSoup(html_content, 'html.parser')
 
             # Capture screenshot
-            print("Capturing screenshot...")
+            self._log("Capturing screenshot...")
             screenshot_path = self.screenshot_manager.capture_screenshot(url)
-            print(f"Saving screenshot to: {screenshot_path}")
+            self._log(f"Screenshot saved to: {screenshot_path}")
 
             # Extract text content using trafilatura
             downloaded = trafilatura.fetch_url(url)
@@ -118,14 +134,13 @@ class WebScraper:
                     full_url = urljoin(url, href)
                     links.append(self._normalize_url(full_url))
 
-            print(f"Found {len(links)} links on page {url}")
+            self._log(f"Found {len(links)} links on page {url}")
 
             # Create content fingerprint
             content_hash = hashlib.md5(html_content.encode()).hexdigest()
 
-            # Return page data including URL
             return {
-                'url': url,  # Add URL to the page data
+                'url': url,
                 'timestamp': response.headers.get('Date', time.strftime('%Y-%m-%d %H:%M:%S')),
                 'html_content': html_content,
                 'text_content': text_content,
@@ -135,53 +150,54 @@ class WebScraper:
             }
 
         except Exception as e:
-            print(f"Error scraping page {url}: {str(e)}")
+            error_msg = f"Error scraping page {url}: {str(e)}"
+            self._log(error_msg)
             return None
 
     def scrape_website(self, url: str, crawl_all_pages: bool = False) -> Dict[str, Any]:
         """Scrapes website content and returns structured data"""
         try:
+            self.clear_logs()  # Clear previous logs
+            self._log(f"Starting new crawl of {url}")
+            self._log(f"Full site crawling: {'enabled' if crawl_all_pages else 'disabled'}")
+
             # Normalize URL
             url = self._normalize_url(url)
             base_domain = urlparse(url).netloc
 
             # Initialize results
-            pages_data = []  # Store pages data here
-            self.visited_urls.clear()  # Reset visited URLs for new scrape
+            pages_data = []
+            self.visited_urls.clear()
 
             # Scrape initial URL
-            print(f"Starting scrape of {url}")  # Debug log
             initial_page = self._scrape_single_page(url)
             if not initial_page:
                 raise Exception(f"Failed to scrape initial page: {url}")
 
             pages_data.append({
                 'url': url,
-                'location': '/',  # Root page
+                'location': '/',
                 'content': initial_page
             })
 
-            # If crawling is enabled, follow links within the same domain
             if crawl_all_pages:
                 urls_to_visit = set([
                     link for link in initial_page['links']
                     if urlparse(link).netloc == base_domain
                 ])
 
-                print(f"Found {len(urls_to_visit)} additional pages to crawl")  # Debug log
+                self._log(f"Found {len(urls_to_visit)} additional pages to crawl")
 
                 while urls_to_visit and len(pages_data) < 50:  # Limit to 50 pages
                     next_url = urls_to_visit.pop()
-                    print(f"Crawling: {next_url}")  # Debug log
+                    self._log(f"Crawling: {next_url}")
 
                     if next_url not in self.visited_urls:
                         try:
-                            # Add small delay between requests
                             time.sleep(random.uniform(1, 2))
-
                             page_data = self._scrape_single_page(next_url)
+
                             if page_data:
-                                # Extract page location from URL
                                 parsed_url = urlparse(next_url)
                                 location = parsed_url.path if parsed_url.path else '/'
 
@@ -199,10 +215,10 @@ class WebScraper:
                                 urls_to_visit.update(new_links - self.visited_urls)
 
                         except Exception as e:
-                            print(f"Error crawling {next_url}: {str(e)}")
+                            self._log(f"Error crawling {next_url}: {str(e)}")
                             continue
 
-            print(f"Completed scrape. Found {len(pages_data)} pages")  # Debug log
+            self._log(f"Crawl completed. Found {len(pages_data)} pages")
 
             # Create the combined content structure
             combined_content = {
@@ -212,11 +228,14 @@ class WebScraper:
                 'links': initial_page['links'],
                 'content_hash': initial_page['content_hash'],
                 'screenshot_path': initial_page['screenshot_path'],
-                'pages': pages_data,  # Include all pages data
-                'crawl_all_pages': crawl_all_pages
+                'pages': pages_data,
+                'crawl_all_pages': crawl_all_pages,
+                'crawler_logs': self._logs  # Include logs in the content
             }
 
             return combined_content
 
         except Exception as e:
-            raise Exception(f"Failed to scrape website: {str(e)}")
+            error_msg = f"Failed to scrape website: {str(e)}"
+            self._log(error_msg)
+            raise Exception(error_msg)
