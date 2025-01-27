@@ -68,6 +68,11 @@ class DataManager:
                     ]
                 existing_changes.append(change)
 
+                # Debug logging
+                print(f"Storing change of type {change.get('type')} for {url}")
+                if 'monitored_pages' in change:
+                    print(f"Stored {len(change['monitored_pages'])} monitored pages")
+
             # Keep only last 100 changes per website
             url_changes = {}
             for change in reversed(existing_changes):
