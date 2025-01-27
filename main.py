@@ -8,6 +8,7 @@ from notifier import EmailNotifier
 from data_manager import DataManager
 from apscheduler.schedulers.background import BackgroundScheduler
 from diff_visualizer import DiffVisualizer
+from bs4 import BeautifulSoup
 
 # Initialize components
 data_manager = DataManager()
@@ -179,32 +180,91 @@ for job in scheduler.get_jobs():
 st.header("Visualization Demo")
 st.write("Here's an example of how changes are visualized when detected:")
 
-# Sample change for demonstration
-demo_before = """Welcome to our Website
-We offer high-quality products.
-Contact us at contact@example.com
-Visit our store at 123 Main Street."""
+# Sample changes for demonstration
+demo_before_html = """
+<nav class="main-menu">
+    <a href="/" style="font-family: Arial; font-size: 16px;">Home</a>
+    <a href="/products" style="font-family: Arial; font-size: 16px;">Products</a>
+    <a href="/contact" style="font-family: Arial; font-size: 16px;">Contact</a>
+</nav>
+<div class="content" style="font-family: Arial; color: #333;">
+    <h1 style="font-size: 24px;">Welcome to our Website</h1>
+    <p style="font-size: 16px;">We offer high-quality products.</p>
+    <p>Contact us at contact@example.com</p>
+    <p>Visit our store at 123 Main Street.</p>
+</div>
+"""
 
-demo_after = """Welcome to our Updated Website
-We offer premium high-quality products and services.
-Contact us at support@example.com
-Visit our new store at 456 Market Street.
-Follow us on social media!"""
+demo_after_html = """
+<nav class="main-menu">
+    <a href="/" style="font-family: Helvetica; font-size: 18px;">Home</a>
+    <a href="/products" style="font-family: Helvetica; font-size: 18px;">Products</a>
+    <a href="/about" style="font-family: Helvetica; font-size: 18px;">About Us</a>
+    <a href="/contact" style="font-family: Helvetica; font-size: 18px;">Contact</a>
+</nav>
+<div class="content" style="font-family: Helvetica; color: #444;">
+    <h1 style="font-size: 28px;">Welcome to our Updated Website</h1>
+    <p style="font-size: 18px;">We offer premium high-quality products and services.</p>
+    <p>Contact us at support@example.com</p>
+    <p>Visit our new store at 456 Market Street.</p>
+    <p>Follow us on social media!</p>
+</div>
+"""
 
 # Show demo visualization
 with st.expander("Demo Change Visualization", expanded=True):
-    st.write("Sample website content change:")
+    # Create BeautifulSoup objects to parse HTML
+    soup_before = BeautifulSoup(demo_before_html, 'html.parser')
+    soup_after = BeautifulSoup(demo_after_html, 'html.parser')
 
-    # Calculate and display change statistics
-    demo_stats = diff_visualizer.get_diff_stats(demo_before, demo_after)
-    st.write("Change Statistics:")
-    demo_cols = st.columns(3)
-    with demo_cols[0]:
-        st.metric("Words Added", demo_stats['words_added'])
-    with demo_cols[1]:
-        st.metric("Words Removed", demo_stats['words_removed'])
-    with demo_cols[2]:
-        st.metric("Total Changes", demo_stats['total_changes'])
+    timestamp = datetime.now().isoformat()
 
-    # Show the actual diff visualization
-    diff_visualizer.visualize_diff(demo_before, demo_after)
+    # Extract components for comparison
+    before_data = {
+        'text_content': soup_before.get_text(),
+        'timestamp': timestamp,
+        'styles': scraper._extract_styles(soup_before),
+        'menu_structure': scraper._extract_menu_structure(soup_before)
+    }
+
+    after_data = {
+        'text_content': soup_after.get_text(),
+        'timestamp': timestamp,
+        'styles': scraper._extract_styles(soup_after),
+        'menu_structure': scraper._extract_menu_structure(soup_after)
+    }
+
+    # Show text changes
+    st.write("### Text Content Changes")
+    diff_visualizer.visualize_diff(before_data['text_content'], after_data['text_content'])
+
+    # Show style changes
+    st.write("### Style Changes")
+    style_changes = change_detector._compare_styles(
+        before_data['styles'],
+        after_data['styles'],
+        timestamp
+    )
+
+    for change in style_changes:
+        st.write(f"**{change['type'].replace('_', ' ').title()}**")
+        if change['before']:
+            st.write("Removed:", change['before'])
+        if change['after']:
+            st.write("Added:", change['after'])
+        st.divider()
+
+    # Show menu changes
+    st.write("### Menu Structure Changes")
+    menu_changes = change_detector._compare_menu_structure(
+        before_data['menu_structure'],
+        after_data['menu_structure'],
+        timestamp
+    )
+
+    for change in menu_changes:
+        st.write("**Navigation Menu Changes:**")
+        st.write("Before:")
+        st.code(change['before'])
+        st.write("After:")
+        st.code(change['after'])

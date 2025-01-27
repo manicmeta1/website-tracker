@@ -1,7 +1,7 @@
 import trafilatura
 from bs4 import BeautifulSoup
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, List
 import hashlib
 from urllib.parse import urlparse, urljoin
 import time
@@ -16,32 +16,71 @@ class WebScraper:
             'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Cache-Control': 'max-age=0'
+            'Upgrade-Insecure-Requests': '1'
         }
 
     def _normalize_url(self, url: str) -> str:
-        """
-        Normalize URL by adding https:// if no scheme is provided
-        """
+        """Normalize URL by adding https:// if no scheme is provided"""
         parsed = urlparse(url)
         if not parsed.scheme:
             return f"https://{url}"
         return url
 
+    def _extract_styles(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extract CSS styles and font information"""
+        styles = {
+            'fonts': set(),
+            'text_sizes': set(),
+            'colors': set()
+        }
+
+        # Extract inline styles
+        for element in soup.find_all(style=True):
+            style = element['style'].lower()
+            if 'font-family' in style:
+                styles['fonts'].add(style.split('font-family:')[1].split(';')[0].strip())
+            if 'font-size' in style:
+                styles['text_sizes'].add(style.split('font-size:')[1].split(';')[0].strip())
+            if 'color' in style:
+                styles['colors'].add(style.split('color:')[1].split(';')[0].strip())
+
+        # Extract CSS from style tags
+        for style in soup.find_all('style'):
+            css_text = style.string
+            if css_text:
+                if 'font-family' in css_text.lower():
+                    fonts = [f.split(':')[1].split(';')[0].strip() 
+                            for f in css_text.lower().split('font-family') if ':' in f]
+                    styles['fonts'].update(fonts)
+
+        return {k: sorted(list(v)) for k, v in styles.items()}
+
+    def _extract_menu_structure(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+        """Extract navigation menu structure"""
+        menus = []
+        nav_elements = soup.find_all(['nav', 'ul', 'menu'])
+
+        for nav in nav_elements:
+            menu_items = nav.find_all('a')
+            if menu_items:
+                menu = []
+                for item in menu_items:
+                    menu.append({
+                        'text': item.get_text().strip(),
+                        'href': item.get('href', ''),
+                        'class': ' '.join(item.get('class', [])),
+                    })
+                menus.append(menu)
+
+        return menus
+
     def scrape_website(self, url: str) -> Dict[str, Any]:
-        """
-        Scrapes website content and returns structured data
-        """
+        """Scrapes website content and returns structured data including styles and structure"""
         try:
             # Normalize URL
             url = self._normalize_url(url)
 
-            # Add a small random delay to seem more human-like
+            # Add a small random delay
             time.sleep(random.uniform(1, 3))
 
             # Get raw HTML
@@ -60,7 +99,6 @@ class WebScraper:
 
             text_content = trafilatura.extract(downloaded)
             if not text_content:
-                # Fallback to BeautifulSoup if trafilatura fails
                 text_content = ' '.join([p.get_text() for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
 
             # Extract links
@@ -71,6 +109,10 @@ class WebScraper:
                     full_url = urljoin(url, href)
                     links.append(self._normalize_url(full_url))
 
+            # Extract styles and structure
+            styles = self._extract_styles(soup)
+            menu_structure = self._extract_menu_structure(soup)
+
             # Create content fingerprint
             content_hash = hashlib.md5(html_content.encode()).hexdigest()
 
@@ -80,7 +122,9 @@ class WebScraper:
                 'html_content': html_content,
                 'text_content': text_content,
                 'links': links,
-                'content_hash': content_hash
+                'content_hash': content_hash,
+                'styles': styles,
+                'menu_structure': menu_structure
             }
 
         except requests.exceptions.HTTPError as e:
