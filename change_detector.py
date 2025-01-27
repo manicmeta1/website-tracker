@@ -156,18 +156,22 @@ class ChangeDetector:
         changes = []
 
         if old_menu != new_menu:
+            # Get first menu from each list (if exists)
+            old_menu_items = old_menu[0] if old_menu else []
+            new_menu_items = new_menu[0] if new_menu else []
+
             # Convert menu structures to readable format
-            def format_menu(menu):
+            def format_menu(menu_items):
                 return '\n'.join([
-                    f"- {item['text']} ({item['href']})"
-                    for item in menu
+                    f"- {item.get('text', '')} ({item.get('href', '')})"
+                    for item in menu_items
                 ])
 
             changes.append({
                 'type': 'menu_structure_change',
                 'location': 'Navigation Menu',
-                'before': format_menu(old_menu),
-                'after': format_menu(new_menu),
+                'before': format_menu(old_menu_items),
+                'after': format_menu(new_menu_items),
                 'timestamp': timestamp
             })
 
