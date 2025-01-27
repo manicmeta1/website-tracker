@@ -9,6 +9,7 @@ from data_manager import DataManager
 from apscheduler.schedulers.background import BackgroundScheduler
 from diff_visualizer import DiffVisualizer
 from bs4 import BeautifulSoup
+from timeline_visualizer import TimelineVisualizer
 
 # Initialize components
 data_manager = DataManager()
@@ -16,6 +17,7 @@ scraper = WebScraper()
 change_detector = ChangeDetector()
 notifier = EmailNotifier()
 diff_visualizer = DiffVisualizer()
+timeline_visualizer = TimelineVisualizer()
 
 # Initialize scheduler
 scheduler = BackgroundScheduler()
@@ -137,58 +139,15 @@ with st.sidebar:
                 data_manager.delete_website_config(website['url'])
                 st.rerun()
 
-# Display changes
-st.header("Recent Changes")
+# Display changes with timeline
+st.header("Website Changes Timeline")
 changes = data_manager.get_recent_changes()
 
 if not changes:
     st.info("No changes detected yet")
 else:
-    # Group changes by website
-    website_changes = {}
-    for change in changes:
-        url = change['url']
-        if url not in website_changes:
-            website_changes[url] = []
-        website_changes[url].append(change)
-
-    # Display changes by website
-    for url, site_changes in website_changes.items():
-        with st.expander(f"Changes for {url}"):
-            for change in site_changes:
-                # Change metadata
-                st.write(f"Detected on {change['timestamp']}")
-                st.write("Type:", change['type'])
-                st.write("Location:", change['location'])
-
-                # Display the visual changes if available
-                if change['type'] == 'visual_change':
-                    st.write("### Visual Changes")
-                    cols = st.columns(3)
-                    with cols[0]:
-                        st.write("Before:")
-                        st.image(f"data:image/png;base64,{change['before_image']}")
-                    with cols[1]:
-                        st.write("After:")
-                        st.image(f"data:image/png;base64,{change['after_image']}")
-                    with cols[2]:
-                        st.write("Differences (highlighted in red):")
-                        st.image(f"data:image/png;base64,{change['diff_image']}")
-                else:
-                    # Calculate and display change statistics
-                    stats = diff_visualizer.get_diff_stats(change['before'], change['after'])
-                    st.write("Change Statistics:")
-                    stat_cols = st.columns(3)
-                    with stat_cols[0]:
-                        st.metric("Words Added", stats['words_added'])
-                    with stat_cols[1]:
-                        st.metric("Words Removed", stats['words_removed'])
-                    with stat_cols[2]:
-                        st.metric("Total Changes", stats['total_changes'])
-
-                    # Advanced diff visualization
-                    diff_visualizer.visualize_diff(change['before'], change['after'])
-                st.divider()
+    # Display interactive timeline
+    timeline_visualizer.visualize_timeline(changes)
 
 # Manual check button
 if websites:
