@@ -40,19 +40,33 @@ def check_website(url: str):
                         st.write("Type:", change['type'])
                         st.write("Location:", change['location'])
 
-                        # Calculate and display change statistics
-                        stats = diff_visualizer.get_diff_stats(change['before'], change['after'])
-                        st.write("Change Statistics:")
-                        stat_cols = st.columns(3)
-                        with stat_cols[0]:
-                            st.metric("Words Added", stats['words_added'])
-                        with stat_cols[1]:
-                            st.metric("Words Removed", stats['words_removed'])
-                        with stat_cols[2]:
-                            st.metric("Total Changes", stats['total_changes'])
+                        # Display the visual changes if available
+                        if change['type'] == 'visual_change':
+                            st.write("### Visual Changes")
+                            cols = st.columns(3)
+                            with cols[0]:
+                                st.write("Before:")
+                                st.image(f"data:image/png;base64,{change['before_image']}")
+                            with cols[1]:
+                                st.write("After:")
+                                st.image(f"data:image/png;base64,{change['after_image']}")
+                            with cols[2]:
+                                st.write("Differences (highlighted in red):")
+                                st.image(f"data:image/png;base64,{change['diff_image']}")
+                        else:
+                            # Calculate and display change statistics
+                            stats = diff_visualizer.get_diff_stats(change['before'], change['after'])
+                            st.write("Change Statistics:")
+                            stat_cols = st.columns(3)
+                            with stat_cols[0]:
+                                st.metric("Words Added", stats['words_added'])
+                            with stat_cols[1]:
+                                st.metric("Words Removed", stats['words_removed'])
+                            with stat_cols[2]:
+                                st.metric("Total Changes", stats['total_changes'])
 
-                        # Advanced diff visualization
-                        diff_visualizer.visualize_diff(change['before'], change['after'])
+                            # Advanced diff visualization
+                            diff_visualizer.visualize_diff(change['before'], change['after'])
                         st.divider()
             else:
                 st.info(f"No changes detected on {url}")
@@ -147,19 +161,33 @@ else:
                 st.write("Type:", change['type'])
                 st.write("Location:", change['location'])
 
-                # Calculate and display change statistics
-                stats = diff_visualizer.get_diff_stats(change['before'], change['after'])
-                st.write("Change Statistics:")
-                stat_cols = st.columns(3)
-                with stat_cols[0]:
-                    st.metric("Words Added", stats['words_added'])
-                with stat_cols[1]:
-                    st.metric("Words Removed", stats['words_removed'])
-                with stat_cols[2]:
-                    st.metric("Total Changes", stats['total_changes'])
+                # Display the visual changes if available
+                if change['type'] == 'visual_change':
+                    st.write("### Visual Changes")
+                    cols = st.columns(3)
+                    with cols[0]:
+                        st.write("Before:")
+                        st.image(f"data:image/png;base64,{change['before_image']}")
+                    with cols[1]:
+                        st.write("After:")
+                        st.image(f"data:image/png;base64,{change['after_image']}")
+                    with cols[2]:
+                        st.write("Differences (highlighted in red):")
+                        st.image(f"data:image/png;base64,{change['diff_image']}")
+                else:
+                    # Calculate and display change statistics
+                    stats = diff_visualizer.get_diff_stats(change['before'], change['after'])
+                    st.write("Change Statistics:")
+                    stat_cols = st.columns(3)
+                    with stat_cols[0]:
+                        st.metric("Words Added", stats['words_added'])
+                    with stat_cols[1]:
+                        st.metric("Words Removed", stats['words_removed'])
+                    with stat_cols[2]:
+                        st.metric("Total Changes", stats['total_changes'])
 
-                # Advanced diff visualization
-                diff_visualizer.visualize_diff(change['before'], change['after'])
+                    # Advanced diff visualization
+                    diff_visualizer.visualize_diff(change['before'], change['after'])
                 st.divider()
 
 # Manual check button

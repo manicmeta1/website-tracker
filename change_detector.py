@@ -1,15 +1,15 @@
 from difflib import SequenceMatcher
 from typing import Dict, List, Any
 import re
+from screenshot_manager import ScreenshotManager
 
 class ChangeDetector:
     def __init__(self):
         self.previous_content = None
+        self.screenshot_manager = ScreenshotManager()
 
     def detect_changes(self, current_content: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Detects changes between current and previous content
-        """
+        """Detects changes between current and previous content"""
         if not self.previous_content:
             self.previous_content = current_content
             return []
@@ -56,15 +56,31 @@ class ChangeDetector:
         if menu_changes:
             changes.extend(menu_changes)
 
+        # Compare screenshots
+        if 'screenshot_path' in self.previous_content and 'screenshot_path' in current_content:
+            try:
+                before_img, after_img, diff_img = self.screenshot_manager.compare_screenshots(
+                    self.previous_content['screenshot_path'],
+                    current_content['screenshot_path']
+                )
+                changes.append({
+                    'type': 'visual_change',
+                    'location': 'Website Screenshot',
+                    'before_image': before_img,
+                    'after_image': after_img,
+                    'diff_image': diff_img,
+                    'timestamp': current_content['timestamp']
+                })
+            except Exception as e:
+                print(f"Warning: Failed to compare screenshots: {str(e)}")
+
         # Update previous content
         self.previous_content = current_content
 
         return changes
 
     def _compare_text(self, old_text: str, new_text: str, timestamp: str) -> List[Dict[str, Any]]:
-        """
-        Compares text content and returns changes
-        """
+        """Compares text content and returns changes"""
         changes = []
 
         # Split into paragraphs
@@ -86,9 +102,7 @@ class ChangeDetector:
         return changes
 
     def _compare_links(self, old_links: List[str], new_links: List[str], timestamp: str) -> List[Dict[str, Any]]:
-        """
-        Compares links and returns changes
-        """
+        """Compares links and returns changes"""
         changes = []
 
         # Find added links
@@ -116,9 +130,7 @@ class ChangeDetector:
         return changes
 
     def _compare_styles(self, old_styles: Dict[str, Any], new_styles: Dict[str, Any], timestamp: str) -> List[Dict[str, Any]]:
-        """
-        Compares style changes (fonts, text sizes, colors)
-        """
+        """Compares style changes (fonts, text sizes, colors)"""
         changes = []
 
         for style_type in ['fonts', 'text_sizes', 'colors']:
@@ -150,9 +162,7 @@ class ChangeDetector:
         return changes
 
     def _compare_menu_structure(self, old_menu: List[Dict[str, str]], new_menu: List[Dict[str, str]], timestamp: str) -> List[Dict[str, Any]]:
-        """
-        Compares navigation menu structure
-        """
+        """Compares navigation menu structure"""
         changes = []
 
         if old_menu != new_menu:

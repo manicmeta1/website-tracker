@@ -6,6 +6,7 @@ import hashlib
 from urllib.parse import urlparse, urljoin
 import time
 import random
+from screenshot_manager import ScreenshotManager
 
 class WebScraper:
     def __init__(self):
@@ -18,6 +19,7 @@ class WebScraper:
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1'
         }
+        self.screenshot_manager = ScreenshotManager()
 
     def _normalize_url(self, url: str) -> str:
         """Normalize URL by adding https:// if no scheme is provided"""
@@ -49,8 +51,8 @@ class WebScraper:
             css_text = style.string
             if css_text:
                 if 'font-family' in css_text.lower():
-                    fonts = [f.split(':')[1].split(';')[0].strip() 
-                            for f in css_text.lower().split('font-family') if ':' in f]
+                    fonts = [f.split(':')[1].split(';')[0].strip()
+                             for f in css_text.lower().split('font-family') if ':' in f]
                     styles['fonts'].update(fonts)
 
         return {k: sorted(list(v)) for k, v in styles.items()}
@@ -92,6 +94,9 @@ class WebScraper:
             # Parse HTML
             soup = BeautifulSoup(html_content, 'html.parser')
 
+            # Capture screenshot
+            screenshot_path = self.screenshot_manager.capture_screenshot(url)
+
             # Extract text content using trafilatura
             downloaded = trafilatura.fetch_url(url)
             if not downloaded:
@@ -124,7 +129,8 @@ class WebScraper:
                 'links': links,
                 'content_hash': content_hash,
                 'styles': styles,
-                'menu_structure': menu_structure
+                'menu_structure': menu_structure,
+                'screenshot_path': screenshot_path
             }
 
         except requests.exceptions.HTTPError as e:
