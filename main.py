@@ -127,8 +127,32 @@ with tab1:
                         <h4>Monitoring Details</h4>
                         <p><strong>Check Frequency:</strong> {website['frequency']}</p>
                         <p><strong>Added:</strong> {website['added_at']}</p>
+                        <p><strong>Full Site Crawling:</strong> {'Enabled' if website.get('crawl_all_pages', False) else 'Disabled'}</p>
                     </div>
                     """, unsafe_allow_html=True)
+
+                    # Show crawled pages if full site crawling is enabled
+                    if website.get('crawl_all_pages', False):
+                        recent_changes = [c for c in all_changes if c['url'] == website['url']]
+                        if recent_changes:
+                            # Get unique pages from recent changes
+                            monitored_pages = set()
+                            for change in recent_changes:
+                                if 'pages' in change:
+                                    for page in change['pages']:
+                                        monitored_pages.add((page['url'], page.get('location', 'Unknown')))
+
+                            with st.expander("📑 Monitored Pages", expanded=False):
+                                if monitored_pages:
+                                    for page_url, location in sorted(monitored_pages):
+                                        st.markdown(f"""
+                                        <div style='border-left: 2px solid #e6e6e6; padding-left: 10px; margin: 5px 0;'>
+                                            <p><strong>{location}</strong><br>
+                                            <small>{page_url}</small></p>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                else:
+                                    st.info("No pages have been crawled yet.")
 
                     # Recent Changes
                     website_changes = [c for c in all_changes if c['url'] == website['url']]
@@ -151,7 +175,7 @@ with tab1:
 
                     # Last check time
                     job = next((job for job in scheduler.get_jobs()
-                                  if job.id == f"check_{website['url']}"), None)
+                                  if job.id == f"check_{_normalize_job_id(website['url'])}"), None)
                     if job:
                         st.markdown(f"Next check: {job.next_run_time}")
 
@@ -361,5 +385,5 @@ with tab4:
 
         st.success("Demo changes generated with varying significance levels! Check the Timeline tab to view them.")
 
-    st.info("Click the 'Generate Demo Changes' button above to create sample changes with different significance levels, " 
+    st.info("Click the 'Generate Demo Changes' button above to create sample changes with different significance levels, "
             "then go to the Timeline tab to see how changes are visualized with color-coding based on their significance.")
