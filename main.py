@@ -305,40 +305,8 @@ with tab4:
     st.header("Change Visualization Demo")
     st.write("Here's an example of how changes are visualized when detected:")
 
-    # Sample changes for demonstration
-    demo_before_html = """
-    <nav class="main-menu">
-        <a href="/" style="font-family: Arial; font-size: 16px;">Home</a>
-        <a href="/products" style="font-family: Arial; font-size: 16px;">Products</a>
-        <a href="/contact" style="font-family: Arial; font-size: 16px;">Contact</a>
-    </nav>
-    <div class="content" style="font-family: Arial; color: #333;">
-        <h1 style="font-size: 24px;">Welcome to our Website</h1>
-        <p style="font-size: 16px;">We offer high-quality products.</p>
-        <p>Contact us at contact@example.com</p>
-        <p>Visit our store at 123 Main Street.</p>
-    </div>
-    """
-
-    demo_after_html = """
-    <nav class="main-menu">
-        <a href="/" style="font-family: Helvetica; font-size: 18px;">Home</a>
-        <a href="/products" style="font-family: Helvetica; font-size: 18px;">Products</a>
-        <a href="/about" style="font-family: Helvetica; font-size: 18px;">About Us</a>
-        <a href="/contact" style="font-family: Helvetica; font-size: 18px;">Contact</a>
-    </nav>
-    <div class="content" style="font-family: Helvetica; color: #444;">
-        <h1 style="font-size: 28px;">Welcome to our Updated Website</h1>
-        <p style="font-size: 18px;">We offer premium high-quality products and services.</p>
-        <p>Contact us at support@example.com</p>
-        <p>Visit our new store at 456 Market Street.</p>
-        <p>Follow us on social media!</p>
-    </div>
-    """
-
-    # Generate demo timeline data
-    if st.button("Generate Demo Timeline Data"):
-        # Create sample changes across different dates
+    # Generate demo changes with varied significance scores
+    if st.button("Generate Demo Changes"):
         demo_changes = [
             {
                 'type': 'text_change',
@@ -346,7 +314,14 @@ with tab4:
                 'before': 'Welcome to our store',
                 'after': 'Welcome to our updated store',
                 'url': 'https://demo-store.com',
-                'timestamp': (datetime.now() - timedelta(days=2)).isoformat()
+                'timestamp': (datetime.now() - timedelta(days=2)).isoformat(),
+                'significance_score': 3,  # Low significance
+                'analysis': {
+                    'explanation': 'Minor text update',
+                    'impact_category': 'Content',
+                    'business_relevance': 'Low',
+                    'recommendations': 'No action needed'
+                }
             },
             {
                 'type': 'menu_structure_change',
@@ -354,15 +329,29 @@ with tab4:
                 'before': '- Home\n- Products\n- Contact',
                 'after': '- Home\n- Products\n- About Us\n- Contact',
                 'url': 'https://demo-store.com',
-                'timestamp': (datetime.now() - timedelta(days=1)).isoformat()
+                'timestamp': (datetime.now() - timedelta(days=1)).isoformat(),
+                'significance_score': 6,  # Medium-high significance
+                'analysis': {
+                    'explanation': 'Navigation structure modified',
+                    'impact_category': 'Structure',
+                    'business_relevance': 'Medium',
+                    'recommendations': 'Update sitemap'
+                }
             },
             {
                 'type': 'text_change',
                 'location': 'Product Page',
                 'before': 'Original product description',
-                'after': 'Updated product description with new features',
+                'after': 'Updated product description with new features and pricing',
                 'url': 'https://demo-store.com/products',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'significance_score': 9,  # Critical significance
+                'analysis': {
+                    'explanation': 'Product pricing changed',
+                    'impact_category': 'Content',
+                    'business_relevance': 'High',
+                    'recommendations': 'Update marketing materials'
+                }
             }
         ]
 
@@ -370,7 +359,7 @@ with tab4:
         for change in demo_changes:
             data_manager.store_changes([change], change['url'])
 
-        st.success("Demo timeline data generated! Check the 'Change Timeline' tab to view it.")
+        st.success("Demo changes generated with varying significance levels! Check the Timeline tab to view them.")
 
     # Show demo visualization
     with st.expander("Demo Change Visualization", expanded=True):
