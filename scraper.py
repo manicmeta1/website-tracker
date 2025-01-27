@@ -6,6 +6,11 @@ from urllib.parse import urlparse, urljoin
 import time
 import random
 from screenshot_manager import ScreenshotManager
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class WebScraper:
     def __init__(self):
@@ -24,41 +29,51 @@ class WebScraper:
         self.retry_count = 3
         self.retry_delay = 2
 
+        # Configure Selenium WebDriver
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        self.driver = webdriver.Chrome(options=chrome_options)
+
         # Add Shopify-specific selectors
         self.shopify_selectors = {
             'navigation': [
-                'nav.navigation', 'header nav', 'footer nav',
+                'nav', 'header nav', 'footer nav',
                 '.header__menu', '.footer__menu', '.site-nav',
-                '.main-menu', '.navigation__container'
+                '.main-menu', '.navigation__container',
+                'ul.menu', '.header-menu'
             ],
             'collections': [
                 '.collection-grid', '.collection-list',
                 '.collection-matrix', '.collection__products',
-                'collection-listing', '.product-list'
+                '.collection-listing', '.product-list',
+                '.products-list'
             ],
             'products': [
                 '.product-card', '.product-item',
                 '.product-grid', '.product-loop',
-                '.featured-products'
+                '.featured-products', '.product-grid-item'
             ],
             'content': [
                 'main', '#MainContent', '#shopify-section-main',
-                '.page-content', '.template-page'
+                '.page-content', '.template-page',
+                'article', '.article'
             ]
         }
+
+    def __del__(self):
+        try:
+            self.driver.quit()
+        except:
+            pass
 
     def _log(self, message: str):
         """Add a log message with timestamp"""
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         log_entry = f"[{timestamp}] {message}"
-        print(log_entry)
+        print(log_entry)  # Print to console for immediate feedback
         self._logs.append(log_entry)
-
-    def get_logs(self):
-        return self._logs
-
-    def clear_logs(self):
-        self._logs = []
 
     def _normalize_url(self, url: str) -> str:
         """Normalize URL and standardize domain format"""
@@ -74,7 +89,9 @@ class WebScraper:
             if netloc.startswith('www.'):
                 netloc = netloc[4:]
 
-            path = parsed.path or '/'
+            path = parsed.path
+            if not path:
+                path = '/'
 
             # Remove query parameters and fragments
             url = f"https://{netloc}{path}"
@@ -129,6 +146,28 @@ class WebScraper:
             self._log(f"Error validating URL {url}: {str(e)}")
             return False
 
+    def _get_dynamic_content(self, url: str) -> str:
+        """Get page content after JavaScript execution"""
+        try:
+            self._log(f"Loading dynamic content for {url}")
+            self.driver.get(url)
+
+            # Wait for dynamic content to load
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+
+            # Scroll to load lazy content
+            self.driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight);"
+            )
+            time.sleep(2)  # Wait for any lazy loading
+
+            return self.driver.page_source
+        except Exception as e:
+            self._log(f"Error getting dynamic content: {str(e)}")
+            return None
+
     def _extract_links(self, soup: BeautifulSoup, base_url: str, base_domain: str) -> Set[str]:
         """Extract all valid internal links from the page with improved Shopify support"""
         links = set()
@@ -157,37 +196,36 @@ class WebScraper:
                     self._log(f"Error processing selector {selector}: {str(e)}")
 
         # Find links in list items and navigation elements
-        for element in soup.find_all(['li', 'div'], class_=lambda x: x and any(term in str(x).lower() for term in 
-            ['menu-item', 'nav-item', 'collection', 'product'])):
-            for a in element.find_all('a', href=True):
-                href = a.get('href', '').strip()
-                if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
-                    try:
-                        full_url = urljoin(base_url, href)
-                        normalized_url = self._normalize_url(full_url)
-                        if self._is_valid_internal_link(normalized_url, base_domain):
-                            links.add(normalized_url)
-                            self._log(f"Added menu/list link: {normalized_url}")
-                    except Exception as e:
-                        self._log(f"Error processing menu/list link {href}: {str(e)}")
+        nav_elements = soup.find_all(['li', 'div', 'a'], href=True)
+        for element in nav_elements:
+            href = element.get('href')
+            if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
+                try:
+                    full_url = urljoin(base_url, href)
+                    normalized_url = self._normalize_url(full_url)
+                    if self._is_valid_internal_link(normalized_url, base_domain):
+                        links.add(normalized_url)
+                        self._log(f"Added navigation link: {normalized_url}")
+                except Exception as e:
+                    self._log(f"Error processing navigation link {href}: {str(e)}")
 
-        # Look for collection and product links that might be missed
-        for a in soup.find_all('a', href=True):
+        # Look for Shopify-specific paths
+        all_links = soup.find_all('a', href=True)
+        for a in all_links:
             href = a.get('href', '').strip()
             if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
                 try:
-                    if any(term in href.lower() for term in ['/collections/', '/products/', '/pages/']):
-                        full_url = urljoin(base_url, href)
-                        normalized_url = self._normalize_url(full_url)
-                        if self._is_valid_internal_link(normalized_url, base_domain):
-                            links.add(normalized_url)
-                            self._log(f"Added Shopify collection/product link: {normalized_url}")
+                    for pattern in ['/collections/', '/products/', '/pages/']:
+                        if pattern in href.lower():
+                            full_url = urljoin(base_url, href)
+                            normalized_url = self._normalize_url(full_url)
+                            if self._is_valid_internal_link(normalized_url, base_domain):
+                                links.add(normalized_url)
+                                self._log(f"Added Shopify {pattern} link: {normalized_url}")
                 except Exception as e:
-                    self._log(f"Error processing collection/product link {href}: {str(e)}")
+                    self._log(f"Error processing Shopify pattern link {href}: {str(e)}")
 
         self._log(f"Extracted {len(links)} valid internal links")
-        for link in links:
-            self._log(f"Found link: {link}")
         return links
 
     def _scrape_single_page(self, url: str, base_domain: str) -> Dict[str, Any]:
@@ -207,12 +245,21 @@ class WebScraper:
                     self._log(f"Retry delay: {delay} seconds")
                     time.sleep(delay)
 
-                response = self.session.get(url, headers=self.headers, timeout=30)
-                response.raise_for_status()
-                html_content = response.text
+                # Get dynamic content using Selenium
+                html_content = self._get_dynamic_content(url)
+                if not html_content:
+                    self._log("Failed to get dynamic content, falling back to requests")
+                    response = self.session.get(url, headers=self.headers, timeout=30)
+                    response.raise_for_status()
+                    html_content = response.text
 
                 # Parse HTML
                 soup = BeautifulSoup(html_content, 'html.parser')
+
+                # Log page structure for debugging
+                self._log("Page structure:")
+                for tag in soup.find_all(['nav', 'header', 'main', 'footer']):
+                    self._log(f"Found <{tag.name}> with classes: {tag.get('class', [])}")
 
                 # Extract links
                 links = self._extract_links(soup, url, base_domain)
@@ -237,7 +284,7 @@ class WebScraper:
 
                 return {
                     'url': url,
-                    'timestamp': response.headers.get('Date', time.strftime('%Y-%m-%d %H:%M:%S')),
+                    'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
                     'html_content': html_content,
                     'text_content': text_content,
                     'links': list(links),
@@ -328,3 +375,9 @@ class WebScraper:
             error_msg = f"Failed to scrape website: {str(e)}"
             self._log(error_msg)
             raise Exception(error_msg)
+
+    def get_logs(self):
+        return self._logs
+
+    def clear_logs(self):
+        self._logs = []
