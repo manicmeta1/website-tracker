@@ -2,7 +2,7 @@ import streamlit as st
 from screenshot_manager import ScreenshotManager
 import os
 import base64
-from PIL import Image
+from PIL import Image, ImageDraw
 import io
 
 st.title("Screenshot Comparison Demo")
@@ -89,52 +89,67 @@ with tab2:
     without needing to capture live websites.
     """)
 
-    # Add a prominent button for sample comparison
-    if st.button("▶️ Run Sample Comparison Demo", type="primary", key="sample_demo"):
-        try:
-            # Create sample images for demonstration
-            def create_sample_image(text, color):
-                img = Image.new('RGB', (400, 300), 'white')
-                draw = ImageDraw.Draw(img)
-                draw.text((100, 150), text, fill=color)
-                return img
+    # Debug message to verify tab content rendering
+    st.write("Loading sample comparison...")
 
-            # Create sample images
-            img1 = create_sample_image("Original Content", "black")
-            img2 = create_sample_image("Updated Content", "blue")
+    # Create a container for the sample comparison content
+    sample_container = st.container()
 
-            # Save temporary files for comparison
-            img1.save("temp_before.png")
-            img2.save("temp_after.png")
+    with sample_container:
+        st.markdown("""
+        <div style="text-align: center; margin: 20px;">
+            <h3>Click below to see sample comparison</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
-            # Compare screenshots
-            before_img, after_img, diff_img = screenshot_manager.compare_screenshots(
-                "temp_before.png",
-                "temp_after.png"
-            )
+        # Add a prominent centered button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            show_sample = st.button("📸 Show Sample Comparison", type="primary")
 
-            # Display results
-            st.write("### Sample Comparison Results")
+        if show_sample:
+            try:
+                # Create sample images for demonstration
+                img1 = Image.new('RGB', (400, 300), 'white')
+                draw1 = ImageDraw.Draw(img1)
+                draw1.text((100, 150), "Original Content", fill="black")
 
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.write("**Before:**")
-                st.image(f"data:image/png;base64,{before_img}", use_column_width=True)
+                img2 = Image.new('RGB', (400, 300), 'white')
+                draw2 = ImageDraw.Draw(img2)
+                draw2.text((100, 150), "Updated Content", fill="blue")
 
-            with col2:
-                st.write("**After:**")
-                st.image(f"data:image/png;base64,{after_img}", use_column_width=True)
+                # Save temporary files for comparison
+                img1.save("temp_before.png")
+                img2.save("temp_after.png")
 
-            with col3:
-                st.write("**Differences (in red):**")
-                st.image(f"data:image/png;base64,{diff_img}", use_column_width=True)
+                # Compare screenshots
+                before_img, after_img, diff_img = screenshot_manager.compare_screenshots(
+                    "temp_before.png",
+                    "temp_after.png"
+                )
 
-            # Cleanup temporary files
-            os.remove("temp_before.png")
-            os.remove("temp_after.png")
+                # Display results
+                st.write("### Sample Comparison Results")
 
-        except Exception as e:
-            st.error(f"Error in sample comparison: {str(e)}")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write("**Before:**")
+                    st.image(f"data:image/png;base64,{before_img}", use_column_width=True)
+
+                with col2:
+                    st.write("**After:**")
+                    st.image(f"data:image/png;base64,{after_img}", use_column_width=True)
+
+                with col3:
+                    st.write("**Differences (in red):**")
+                    st.image(f"data:image/png;base64,{diff_img}", use_column_width=True)
+
+                # Cleanup temporary files
+                os.remove("temp_before.png")
+                os.remove("temp_after.png")
+
+            except Exception as e:
+                st.error(f"Error in sample comparison: {str(e)}")
 
 # How it works section at the bottom
 st.write("---")
