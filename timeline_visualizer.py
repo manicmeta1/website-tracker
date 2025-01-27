@@ -46,21 +46,43 @@ class TimelineVisualizer:
 
         # Convert changes to DataFrame for easier manipulation
         df = self._prepare_timeline_data(changes)
-        
-        # Group changes by date for the timeline
-        df['date'] = df['timestamp'].dt.date
-        dates = sorted(df['date'].unique())
 
         # Timeline header
         st.markdown("### 📅 Website Changes Timeline")
-        
+
         # Create tabs for different views
         tab1, tab2 = st.tabs(["Timeline View", "Comparison View"])
-        
+
         with tab1:
+            # Add filters for better navigation
+            col1, col2 = st.columns(2)
+            with col1:
+                selected_url = st.selectbox(
+                    "Filter by Website",
+                    options=['All'] + list(df['url'].unique()),
+                    key="url_filter"
+                )
+            with col2:
+                selected_type = st.selectbox(
+                    "Filter by Change Type",
+                    options=['All'] + list(df['type'].unique()),
+                    key="type_filter"
+                )
+
+            # Apply filters
+            filtered_df = df.copy()
+            if selected_url != 'All':
+                filtered_df = filtered_df[filtered_df['url'] == selected_url]
+            if selected_type != 'All':
+                filtered_df = filtered_df[filtered_df['type'] == selected_type]
+
+            # Group changes by date for the timeline
+            filtered_df['date'] = filtered_df['timestamp'].dt.date
+            dates = sorted(filtered_df['date'].unique())
+
             # Timeline visualization
             for date in dates:
-                day_changes = df[df['date'] == date]
+                day_changes = filtered_df[filtered_df['date'] == date]
                 with st.expander(f"📅 {date.strftime('%Y-%m-%d')} ({len(day_changes)} changes)", expanded=True):
                     for _, change in day_changes.iterrows():
                         # Create a card-like display for each change
@@ -72,7 +94,7 @@ class TimelineVisualizer:
                             <p><strong>Location:</strong> {change['location']}</p>
                         </div>
                         """, unsafe_allow_html=True)
-                        
+
                         # Display the actual changes
                         change_data = change['change_data']
                         if change['type'] == 'visual_change':
@@ -87,49 +109,67 @@ class TimelineVisualizer:
                                 st.write("Differences:")
                                 st.image(f"data:image/png;base64,{change_data['diff_image']}")
                         else:
-                            self.diff_visualizer.visualize_diff(
-                                change_data.get('before', ''),
-                                change_data.get('after', '')
-                            )
+                            if 'before' in change_data or 'after' in change_data:
+                                self.diff_visualizer.visualize_diff(
+                                    change_data.get('before', ''),
+                                    change_data.get('after', '')
+                                )
                         st.divider()
 
         with tab2:
-            # Comparison view
-            st.markdown("### Compare Changes")
-            
+            # Comparison view with interactive selection
+            st.markdown("### Compare Changes Across Time")
+
+            # Filter options for comparison
+            url_to_compare = st.selectbox(
+                "Select Website to Compare",
+                options=list(df['url'].unique()),
+                key="compare_url"
+            )
+
+            # Filter changes for selected URL
+            url_changes = df[df['url'] == url_to_compare]
+
             # Create two columns for selecting timestamps
             col1, col2 = st.columns(2)
             with col1:
                 timestamp1 = st.selectbox(
-                    "Select first timestamp",
-                    df['timestamp'],
+                    "Select First Timestamp",
+                    options=url_changes['timestamp'],
                     format_func=lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
                     key="timestamp1"
                 )
-            with col2:
-                later_timestamps = df[df['timestamp'] > timestamp1]['timestamp']
-                timestamp2 = st.selectbox(
-                    "Select second timestamp",
-                    later_timestamps,
-                    format_func=lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
-                    key="timestamp2"
-                )
-            
-            if timestamp1 and timestamp2:
-                change1 = df[df['timestamp'] == timestamp1].iloc[0]['change_data']
-                change2 = df[df['timestamp'] == timestamp2].iloc[0]['change_data']
-                
-                st.markdown("### Comparison Results")
-                if change1['type'] == 'visual_change' and change2['type'] == 'visual_change':
-                    cols = st.columns(2)
-                    with cols[0]:
-                        st.write(f"State at {timestamp1.strftime('%Y-%m-%d %H:%M:%S')}")
-                        st.image(f"data:image/png;base64,{change1['after_image']}")
-                    with cols[1]:
-                        st.write(f"State at {timestamp2.strftime('%Y-%m-%d %H:%M:%S')}")
-                        st.image(f"data:image/png;base64,{change2['after_image']}")
-                else:
-                    self.diff_visualizer.visualize_diff(
-                        change1.get('after', ''),
-                        change2.get('after', '')
+
+            if timestamp1:
+                with col2:
+                    # Only show timestamps after the first selected timestamp
+                    later_timestamps = url_changes[url_changes['timestamp'] > timestamp1]['timestamp']
+                    timestamp2 = st.selectbox(
+                        "Select Second Timestamp",
+                        options=later_timestamps,
+                        format_func=lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
+                        key="timestamp2"
                     )
+
+                if timestamp2:
+                    # Get the change data for both timestamps
+                    change1 = url_changes[url_changes['timestamp'] == timestamp1].iloc[0]['change_data']
+                    change2 = url_changes[url_changes['timestamp'] == timestamp2].iloc[0]['change_data']
+
+                    st.markdown("### Comparison Results")
+
+                    # Display comparison based on change type
+                    if change1['type'] == 'visual_change' and change2['type'] == 'visual_change':
+                        cols = st.columns(2)
+                        with cols[0]:
+                            st.write(f"State at {timestamp1.strftime('%Y-%m-%d %H:%M:%S')}")
+                            st.image(f"data:image/png;base64,{change1['after_image']}")
+                        with cols[1]:
+                            st.write(f"State at {timestamp2.strftime('%Y-%m-%d %H:%M:%S')}")
+                            st.image(f"data:image/png;base64,{change2['after_image']}")
+                    else:
+                        st.write("Content Changes Between Selected Times:")
+                        self.diff_visualizer.visualize_diff(
+                            change1.get('after', ''),
+                            change2.get('after', '')
+                        )
