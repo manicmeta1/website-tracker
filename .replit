@@ -19,6 +19,10 @@ author = "agent"
 task = "workflow.run"
 args = "Screenshot Demo"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Website Monitor"
+
 [[workflows.workflow]]
 name = "Screenshot Demo"
 author = "agent"
@@ -33,6 +37,21 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "streamlit run test_screenshot.py --server.port=5003 --server.address=0.0.0.0"
 waitForPort = 5003
+
+[[workflows.workflow]]
+name = "Website Monitor"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run main.py --server.port=5000 --server.address=0.0.0.0"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
