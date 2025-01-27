@@ -78,13 +78,13 @@ class TimelineVisualizer:
             changes_by_url[url].append(change)
 
         # Display changes for each URL
-        for url, url_changes in changes_by_url.items():
+        for url_idx, (url, url_changes) in enumerate(changes_by_url.items()):
             st.markdown(f"### 🌐 {url}")
 
             # Sort changes by timestamp in reverse order
             sorted_changes = sorted(url_changes, key=lambda x: x['timestamp'], reverse=True)
 
-            for change in sorted_changes:
+            for change_idx, change in enumerate(sorted_changes):
                 score = change.get('significance_score', 5)
                 color = self._get_significance_color(score)
                 bg_color = self._hex_to_rgba(color)
@@ -116,8 +116,9 @@ class TimelineVisualizer:
                 # Show content changes
                 if 'before' in change and 'after' in change:
                     st.markdown("**Content Changes**")
-                    # Use positional arguments instead of keyword arguments
-                    self.diff_visualizer.visualize_diff(
+                    # Create a new DiffVisualizer instance for each change
+                    diff_viz = DiffVisualizer(key_prefix=f"timeline_diff_{url_idx}_{change_idx}")
+                    diff_viz.visualize_diff(
                         change['before'],
                         change['after']
                     )
