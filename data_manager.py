@@ -54,10 +54,18 @@ class DataManager:
             with open(self.changes_file, 'r') as f:
                 existing_changes = json.load(f)
 
-            # Add website URL to changes
+            # Add website URL and timestamp to changes
             for change in changes:
                 change['url'] = url
                 change['timestamp'] = datetime.now().isoformat()
+
+                # If this is from a multi-page crawl, store the pages info
+                if 'pages' in change:
+                    # Extract only necessary page information
+                    change['monitored_pages'] = [
+                        {'url': page['url'], 'location': page.get('location', 'Unknown')}
+                        for page in change['pages']
+                    ]
                 existing_changes.append(change)
 
             # Keep only last 100 changes per website
@@ -89,7 +97,7 @@ class DataManager:
             if url:
                 changes = [c for c in changes if c['url'] == url]
 
-            return changes[-10:]  # Return last 10 changes
+            return changes[-100:]  # Return last 100 changes
 
-        except Exception as e:
-            raise Exception(f"Failed to retrieve changes: {str(e)}")
+        except Exception:
+            return []

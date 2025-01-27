@@ -138,12 +138,16 @@ with tab1:
                             # Get unique pages from recent changes
                             monitored_pages = set()
                             for change in recent_changes:
-                                if 'pages' in change:
+                                # Check for both old and new page storage formats
+                                if 'monitored_pages' in change:
+                                    for page in change['monitored_pages']:
+                                        monitored_pages.add((page['url'], page.get('location', 'Unknown')))
+                                elif 'pages' in change:
                                     for page in change['pages']:
                                         monitored_pages.add((page['url'], page.get('location', 'Unknown')))
 
-                            with st.expander("📑 Monitored Pages", expanded=False):
-                                if monitored_pages:
+                            if monitored_pages:
+                                with st.expander("📑 Monitored Pages", expanded=False):
                                     for page_url, location in sorted(monitored_pages):
                                         st.markdown(f"""
                                         <div style='border-left: 2px solid #e6e6e6; padding-left: 10px; margin: 5px 0;'>
@@ -151,8 +155,8 @@ with tab1:
                                             <small>{page_url}</small></p>
                                         </div>
                                         """, unsafe_allow_html=True)
-                                else:
-                                    st.info("No pages have been crawled yet.")
+                            else:
+                                st.info("Waiting for the first crawl to discover pages...")
 
                     # Recent Changes
                     website_changes = [c for c in all_changes if c['url'] == website['url']]
