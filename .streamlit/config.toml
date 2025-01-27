@@ -5,4 +5,4 @@ port = 5000
 
 [browser]
 serverAddress = "0.0.0.0"
-serverPort = 5000
+serverPort = 5003
