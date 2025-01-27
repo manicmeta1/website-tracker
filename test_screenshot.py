@@ -1,56 +1,148 @@
 import streamlit as st
 from screenshot_manager import ScreenshotManager
 import os
+import base64
+from PIL import Image
+import io
 
 st.title("Screenshot Comparison Demo")
 
 # Initialize screenshot manager
 screenshot_manager = ScreenshotManager()
 
-# Demo URLs - using real websites for demonstration
-demo_urls = [
-    "https://example.com",
-    "https://httpbin.org/html"
-]
-
 # Add description
 st.write("""
 This demo shows how the screenshot comparison feature works. 
 It will capture screenshots of two different websites and show the visual differences between them.
+
+The comparison highlights changes in:
+- Layout
+- Content
+- Images
+- Text
 """)
 
-if st.button("Run Screenshot Comparison Demo"):
-    with st.spinner("Capturing and comparing screenshots..."):
+# Create tabs for different demo options
+tab1, tab2 = st.tabs(["Live Comparison", "Sample Comparison"])
+
+with tab1:
+    # Demo URLs - using real websites for demonstration
+    st.write("### Live Website Comparison")
+    url1 = st.text_input("First Website URL", value="https://example.com")
+    url2 = st.text_input("Second Website URL", value="https://httpbin.org/html")
+
+    if st.button("Compare Websites"):
+        with st.spinner("Capturing and comparing screenshots..."):
+            try:
+                # Capture screenshots
+                screenshot1 = screenshot_manager.capture_screenshot(url1)
+                st.success(f"✅ Captured first screenshot")
+
+                screenshot2 = screenshot_manager.capture_screenshot(url2)
+                st.success(f"✅ Captured second screenshot")
+
+                # Compare screenshots
+                before_img, after_img, diff_img = screenshot_manager.compare_screenshots(
+                    screenshot1, 
+                    screenshot2
+                )
+
+                # Display results
+                st.write("### Comparison Results")
+
+                # Show stats about the differences
+                st.write("📊 **Difference Overview**")
+                cols = st.columns(3)
+                with cols[0]:
+                    st.metric("Before Screenshot Size", "1920x1080")
+                with cols[1]:
+                    st.metric("After Screenshot Size", "1920x1080")
+                with cols[2]:
+                    st.metric("Comparison Method", "Pixel-level")
+
+                # Display the images
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write("**Before:**")
+                    st.image(f"data:image/png;base64,{before_img}", use_column_width=True)
+
+                with col2:
+                    st.write("**After:**")
+                    st.image(f"data:image/png;base64,{after_img}", use_column_width=True)
+
+                with col3:
+                    st.write("**Differences (in red):**")
+                    st.image(f"data:image/png;base64,{diff_img}", use_column_width=True)
+
+            except Exception as e:
+                st.error(f"Error during comparison: {str(e)}")
+                st.info("Please try the Sample Comparison tab to see how the feature works.")
+
+with tab2:
+    st.write("### Sample Comparison Demo")
+    st.write("""
+    This is a demonstration using pre-captured screenshots to show how the comparison works
+    even when live capture might fail due to website restrictions.
+    """)
+
+    if st.button("Show Sample Comparison"):
         try:
-            # Capture screenshots
-            screenshot1 = screenshot_manager.capture_screenshot(demo_urls[0])
-            st.success(f"Captured first screenshot: {os.path.basename(screenshot1)}")
-            
-            screenshot2 = screenshot_manager.capture_screenshot(demo_urls[1])
-            st.success(f"Captured second screenshot: {os.path.basename(screenshot2)}")
-            
+            # Create sample images for demonstration
+            def create_sample_image(text, color):
+                img = Image.new('RGB', (400, 300), 'white')
+                from PIL import ImageDraw, ImageFont
+                draw = ImageDraw.Draw(img)
+                draw.text((100, 150), text, fill=color)
+                return img
+
+            # Create sample images
+            img1 = create_sample_image("Original Content", "black")
+            img2 = create_sample_image("Updated Content", "blue")
+
+            # Convert to base64
+            def img_to_base64(img):
+                buffered = io.BytesIO()
+                img.save(buffered, format="PNG")
+                return base64.b64encode(buffered.getvalue()).decode()
+
+            # Save temporary files for comparison
+            img1.save("temp_before.png")
+            img2.save("temp_after.png")
+
             # Compare screenshots
             before_img, after_img, diff_img = screenshot_manager.compare_screenshots(
-                screenshot1, 
-                screenshot2
+                "temp_before.png",
+                "temp_after.png"
             )
-            
+
             # Display results
-            st.write("### Screenshot Comparison Results")
-            
+            st.write("### Sample Comparison Results")
+
             col1, col2, col3 = st.columns(3)
-            
             with col1:
-                st.write("Before (example.com)")
-                st.image(f"data:image/png;base64,{before_img}")
-                
+                st.write("**Sample Before:**")
+                st.image(f"data:image/png;base64,{before_img}", use_column_width=True)
+
             with col2:
-                st.write("After (httpbin.org)")
-                st.image(f"data:image/png;base64,{after_img}")
-                
+                st.write("**Sample After:**")
+                st.image(f"data:image/png;base64,{after_img}", use_column_width=True)
+
             with col3:
-                st.write("Differences (in red)")
-                st.image(f"data:image/png;base64,{diff_img}")
-                
+                st.write("**Differences (in red):**")
+                st.image(f"data:image/png;base64,{diff_img}", use_column_width=True)
+
+            # Cleanup temporary files
+            os.remove("temp_before.png")
+            os.remove("temp_after.png")
+
         except Exception as e:
-            st.error(f"Error during demo: {str(e)}")
+            st.error(f"Error in sample comparison: {str(e)}")
+
+st.write("---")
+st.write("""
+### How it works
+1. Screenshots are captured using Selenium WebDriver
+2. Images are processed using Pillow (PIL)
+3. Pixel-by-pixel comparison highlights differences
+4. Changes are marked in red in the difference view
+""")
