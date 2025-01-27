@@ -55,7 +55,7 @@ class TimelineVisualizer:
 
         with tab1:
             # Add filters for better navigation
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 selected_url = st.selectbox(
                     "Filter by Website",
@@ -68,6 +68,14 @@ class TimelineVisualizer:
                     options=['All'] + list(df['type'].unique()),
                     key="timeline_type_filter"
                 )
+            with col3:
+                min_significance = st.slider(
+                    "Minimum Significance Score",
+                    min_value=1,
+                    max_value=10,
+                    value=1,
+                    key="significance_filter"
+                )
 
             # Apply filters
             filtered_df = df.copy()
@@ -75,6 +83,13 @@ class TimelineVisualizer:
                 filtered_df = filtered_df[filtered_df['url'] == selected_url]
             if selected_type != 'All':
                 filtered_df = filtered_df[filtered_df['type'] == selected_type]
+
+            # Filter by significance score
+            filtered_df = filtered_df[
+                filtered_df['change_data'].apply(
+                    lambda x: x.get('significance_score', 0) >= min_significance
+                )
+            ]
 
             # Group changes by date for the timeline
             filtered_df['date'] = filtered_df['timestamp'].dt.date
@@ -85,22 +100,39 @@ class TimelineVisualizer:
                 day_changes = filtered_df[filtered_df['date'] == date]
                 with st.expander(f"📅 {date.strftime('%Y-%m-%d')} ({len(day_changes)} changes)", expanded=True):
                     for idx, change in day_changes.iterrows():
+                        change_data = change['change_data']
+                        significance_score = change_data.get('significance_score', 0)
+                        analysis = change_data.get('analysis', {})
+
                         # Create unique prefix for each change entry
                         change_prefix = f"timeline_{change['timestamp'].strftime('%Y%m%d%H%M%S')}_{idx}"
                         diff_viz = DiffVisualizer(key_prefix=change_prefix)
 
-                        # Create a card-like display for each change
+                        # Enhanced card display with significance score
                         st.markdown(f"""
                         <div style='border:1px solid #ddd; border-radius:5px; padding:10px; margin:5px;'>
-                            <h4>{self._get_change_icon(change['type'])} {change['type'].replace('_', ' ').title()}</h4>
+                            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                                <h4>{self._get_change_icon(change['type'])} {change['type'].replace('_', ' ').title()}</h4>
+                                <span style='background-color: {"#28a745" if significance_score >= 7 else "#ffc107" if significance_score >= 4 else "#dc3545"}; 
+                                           color: white; padding: 5px 10px; border-radius: 15px;'>
+                                    Significance: {significance_score}/10
+                                </span>
+                            </div>
                             <p><strong>Time:</strong> {change['timestamp'].strftime('%H:%M:%S')}</p>
                             <p><strong>URL:</strong> {change['url']}</p>
                             <p><strong>Location:</strong> {change['location']}</p>
+
+                            <div style='background-color: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;'>
+                                <h5>AI Analysis</h5>
+                                <p><strong>Impact Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
+                                <p><strong>Explanation:</strong> {analysis.get('explanation', 'N/A')}</p>
+                                <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
+                                <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
 
                         # Display the actual changes
-                        change_data = change['change_data']
                         if change['type'] == 'visual_change':
                             cols = st.columns(3)
                             with cols[0]:

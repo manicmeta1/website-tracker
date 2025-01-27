@@ -7,6 +7,7 @@ dependencies = [
     "apscheduler>=3.11.0",
     "beautifulsoup4>=4.12.3",
     "diff-match-patch>=20241021",
+    "openai>=1.60.1",
     "pandas>=2.2.3",
     "pillow>=11.1.0",
     "requests>=2.32.3",

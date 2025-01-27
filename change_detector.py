@@ -2,11 +2,13 @@ from difflib import SequenceMatcher
 from typing import Dict, List, Any
 import re
 from screenshot_manager import ScreenshotManager
+from change_scorer import ChangeScorer
 
 class ChangeDetector:
     def __init__(self):
         self.previous_content = None
         self.screenshot_manager = ScreenshotManager()
+        self.change_scorer = ChangeScorer()  # Add change scorer
 
     def detect_changes(self, current_content: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Detects changes between current and previous content"""
@@ -76,6 +78,10 @@ class ChangeDetector:
 
         # Update previous content
         self.previous_content = current_content
+
+        # Score the changes using AI
+        if changes:
+            changes = self.change_scorer.score_changes(changes)
 
         return changes
 
