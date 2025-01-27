@@ -51,20 +51,13 @@ class WebScraper:
             if netloc.startswith('www.'):
                 netloc = netloc[4:]
 
-            # Reconstruct URL without fragments and query params
-            path = parsed.path
-            if not path:
-                path = '/'
+            path = parsed.path or '/'
 
-            # Construct clean URL
-            clean_url = f"https://{netloc}{path}"
+            # Remove query parameters and fragments
+            url = f"https://{netloc}{path}"
+            self._log(f"Normalized URL: {url}")
+            return url
 
-            # Remove trailing slashes except for root path
-            if clean_url.endswith('/') and len(clean_url) > 8 and not clean_url.rstrip('/').endswith(netloc):
-                clean_url = clean_url.rstrip('/')
-
-            self._log(f"Normalized URL: {url} -> {clean_url}")
-            return clean_url
         except Exception as e:
             self._log(f"Error normalizing URL {url}: {str(e)}")
             raise Exception(f"Invalid URL format: {url}")
@@ -84,22 +77,27 @@ class WebScraper:
             if base_domain.startswith('www.'):
                 base_domain = base_domain[4:]
 
-            # Check if it's an internal link
-            is_internal = (netloc == base_domain or not netloc)
+            # Shopify-specific exclusions
+            shopify_excluded = any(x in url.lower() for x in [
+                '/cart', '/checkout', '/account', '/challenge',
+                'login', 'logout', 'signin', 'signout'
+            ])
 
-            # Check if it's not a file or excluded path
-            excluded_extensions = ('.pdf', '.jpg', '.png', '.gif', '.zip', '.css', '.js', '.ico')
-            excluded_terms = ('logout', 'signout', 'cart', 'checkout', 'account', 'login', 'admin')
+            # File extensions to exclude
+            excluded_extensions = ('.pdf', '.jpg', '.jpeg', '.png', '.gif', 
+                                 '.zip', '.css', '.js', '.ico', '.woff', 
+                                 '.woff2', '.svg')
 
             is_valid = (
-                is_internal and
+                (netloc == base_domain or not netloc) and
                 not url.endswith(excluded_extensions) and
-                not any(term in url.lower() for term in excluded_terms)
+                not shopify_excluded
             )
 
             if is_valid:
                 self._log(f"Valid internal link found: {url}")
             return is_valid
+
         except Exception as e:
             self._log(f"Error validating URL {url}: {str(e)}")
             return False
@@ -109,53 +107,51 @@ class WebScraper:
         links = set()
         self._log(f"Extracting links from {base_url}")
 
+        # List of Shopify-specific selectors
+        shopify_selectors = [
+            'nav.navigation',
+            'ul.site-nav',
+            '.site-header',
+            '.site-footer',
+            '.collection-grid',
+            '.product-card',
+            '.footer-nav',
+            '.menu-drawer',
+            '.site-navigation'
+        ]
+
         # Find all elements that might contain links
-        link_elements = []
+        for selector in shopify_selectors:
+            elements = soup.select(selector)
+            for element in elements:
+                for a in element.find_all('a', href=True):
+                    href = a.get('href', '').strip()
+                    if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
+                        try:
+                            full_url = urljoin(base_url, href)
+                            normalized_url = self._normalize_url(full_url)
+                            if self._is_valid_internal_link(normalized_url, base_domain):
+                                links.add(normalized_url)
+                                self._log(f"Added Shopify link: {normalized_url}")
+                        except Exception as e:
+                            self._log(f"Error processing Shopify link {href}: {str(e)}")
 
         # Standard navigation elements
-        nav_elements = soup.find_all(['nav', 'header', 'footer', 'ul', 'div'], 
-                                   class_=lambda x: x and any(term in str(x).lower() 
-                                   for term in ['nav', 'menu', 'header', 'footer', 'site-nav']))
-
-        # Shopify-specific navigation
-        shopify_elements = soup.find_all(['div', 'ul'], 
-                                       class_=lambda x: x and any(term in str(x).lower() 
-                                       for term in ['shopify', 'collection', 'product-list']))
-
-        # Add all potential link containers
-        link_elements.extend(nav_elements)
-        link_elements.extend(shopify_elements)
-
-        # Process all link elements
-        for container in link_elements:
-            for a in container.find_all('a', href=True):
+        nav_elements = soup.find_all(['nav', 'header', 'footer', 'ul', 'div'])
+        for nav in nav_elements:
+            for a in nav.find_all('a', href=True):
                 href = a.get('href', '').strip()
                 if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
                     try:
                         full_url = urljoin(base_url, href)
                         normalized_url = self._normalize_url(full_url)
-
                         if self._is_valid_internal_link(normalized_url, base_domain):
                             links.add(normalized_url)
-                            self._log(f"Added link: {normalized_url}")
+                            self._log(f"Added standard link: {normalized_url}")
                     except Exception as e:
-                        self._log(f"Error processing link {href}: {str(e)}")
+                        self._log(f"Error processing standard link {href}: {str(e)}")
 
-        # Also check standalone links
-        for a in soup.find_all('a', href=True):
-            href = a.get('href', '').strip()
-            if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
-                try:
-                    full_url = urljoin(base_url, href)
-                    normalized_url = self._normalize_url(full_url)
-
-                    if self._is_valid_internal_link(normalized_url, base_domain):
-                        links.add(normalized_url)
-                        self._log(f"Added standalone link: {normalized_url}")
-                except Exception as e:
-                    self._log(f"Error processing standalone link {href}: {str(e)}")
-
-        self._log(f"Extracted {len(links)} valid internal links from {base_url}")
+        self._log(f"Extracted {len(links)} valid internal links")
         for link in links:
             self._log(f"Found link: {link}")
         return links
@@ -171,6 +167,12 @@ class WebScraper:
 
         for attempt in range(self.retry_count):
             try:
+                # Add random delay between requests
+                if attempt > 0:
+                    delay = self.retry_delay * (1 + attempt) + random.uniform(1, 3)
+                    self._log(f"Retry delay: {delay} seconds")
+                    time.sleep(delay)
+
                 response = self.session.get(url, headers=self.headers, timeout=30)
                 response.raise_for_status()
                 html_content = response.text
@@ -188,6 +190,7 @@ class WebScraper:
                 self._log(f"Screenshot saved to: {screenshot_path}")
 
                 # Extract text content
+                self._log("Extracting text content...")
                 downloaded = trafilatura.fetch_url(url)
                 if not downloaded:
                     self._log("Trafilatura failed to download content, falling back to BeautifulSoup")
@@ -211,7 +214,7 @@ class WebScraper:
             except Exception as e:
                 self._log(f"Attempt {attempt + 1} failed for {url}: {str(e)}")
                 if attempt < self.retry_count - 1:
-                    time.sleep(self.retry_delay * (attempt + 1))
+                    continue
                 else:
                     self._log(f"Failed to scrape {url} after {self.retry_count} attempts")
                     return None
