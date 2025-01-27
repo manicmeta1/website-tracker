@@ -17,6 +17,7 @@ class TimelineVisualizer:
                 'type': change['type'],
                 'location': change['location'],
                 'url': change.get('url', 'Unknown'),
+                'page_name': change.get('location', '').split('/')[-1] or 'Homepage',
                 'significance': change.get('significance_score', 0),
                 'change_data': change
             })
@@ -51,71 +52,117 @@ class TimelineVisualizer:
         # Timeline header
         st.title("📅 Website Changes Timeline")
 
-        # Date filter
-        min_date = df['timestamp'].min().date()
-        max_date = df['timestamp'].max().date()
+        # Website and page selection
+        unique_websites = df['url'].unique()
+        if len(unique_websites) > 0:
+            selected_website = st.selectbox(
+                "Select Website",
+                options=unique_websites,
+                key="timeline_website_selector"
+            )
 
-        start_date = st.date_input(
-            "From date",
-            value=min_date,
-            min_value=min_date,
-            max_value=max_date
-        )
+            # Filter data for selected website
+            website_df = df[df['url'] == selected_website]
 
-        end_date = st.date_input(
-            "To date",
-            value=max_date,
-            min_value=min_date,
-            max_value=max_date
-        )
+            # Get unique pages for the selected website
+            unique_pages = sorted(website_df['page_name'].unique())
+            page_options = ['All Pages'] + list(unique_pages)
+            selected_page = st.selectbox(
+                "Select Page",
+                options=page_options,
+                key="timeline_page_selector"
+            )
 
-        # Filter by date
-        mask = (df['timestamp'].dt.date >= start_date) & (df['timestamp'].dt.date <= end_date)
-        filtered_df = df.loc[mask]
+            # Filter based on page selection
+            if selected_page != 'All Pages':
+                filtered_df = website_df[website_df['page_name'] == selected_page]
+            else:
+                filtered_df = website_df
 
-        # Display timeline overview
-        st.subheader("Timeline Overview")
-        col1, col2 = st.columns(2)
+            # Page overview if "All Pages" is selected
+            if selected_page == 'All Pages':
+                st.subheader("📑 Pages Overview")
+                page_stats = website_df.groupby('page_name').agg({
+                    'type': 'count',
+                    'timestamp': ['min', 'max']
+                }).reset_index()
+                page_stats.columns = ['Page', 'Changes', 'First Change', 'Last Change']
 
-        with col1:
-            st.metric("Total Changes", len(filtered_df))
-        with col2:
-            st.metric("Time Range", f"{(end_date - start_date).days + 1} days")
+                # Display page statistics
+                for _, row in page_stats.iterrows():
+                    with st.expander(f"📄 {row['Page']} ({row['Changes']} changes)"):
+                        st.write(f"First detected change: {row['First Change']}")
+                        st.write(f"Most recent change: {row['Last Change']}")
 
-        # Show changes over time
-        st.subheader("Changes Over Time")
-        timeline_data = filtered_df.copy()
-        timeline_data['date'] = timeline_data['timestamp'].dt.date
-        daily_changes = timeline_data.groupby('date').size().reset_index(name='count')
-        st.line_chart(data=daily_changes.set_index('date'))
+                st.divider()
 
-        # Display individual changes
-        st.subheader("Change Details")
-        for idx, change in filtered_df.iterrows():
-            change_data = change['change_data']
-            with st.expander(
-                f"{self._get_change_icon(change['type'])} {change['timestamp'].strftime('%Y-%m-%d %H:%M:%S')} - {change['type'].replace('_', ' ').title()}"
-            ):
-                st.write(f"**Location:** {change['location']}")
-                st.write(f"**URL:** {change['url']}")
+            # Date filter
+            min_date = filtered_df['timestamp'].min().date()
+            max_date = filtered_df['timestamp'].max().date()
 
-                if change['type'] == 'visual_change':
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.write("Before:")
-                        st.image(change_data['before_image'])
-                    with col2:
-                        st.write("After:")
-                        st.image(change_data['after_image'])
-                    with col3:
-                        st.write("Difference:")
-                        st.image(change_data['diff_image'])
-                else:
-                    diff_viz = DiffVisualizer(key_prefix=f"change_{idx}")
-                    diff_viz.visualize_diff(
-                        change_data.get('before', ''),
-                        change_data.get('after', '')
-                    )
+            start_date = st.date_input(
+                "From date",
+                value=min_date,
+                min_value=min_date,
+                max_value=max_date,
+                key="timeline_start_date"
+            )
+
+            end_date = st.date_input(
+                "To date",
+                value=max_date,
+                min_value=min_date,
+                max_value=max_date,
+                key="timeline_end_date"
+            )
+
+            # Apply date filter
+            mask = (filtered_df['timestamp'].dt.date >= start_date) & (filtered_df['timestamp'].dt.date <= end_date)
+            filtered_df = filtered_df.loc[mask]
+
+            # Display timeline overview
+            st.subheader("Timeline Overview")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric("Total Changes", len(filtered_df))
+            with col2:
+                st.metric("Time Range", f"{(end_date - start_date).days + 1} days")
+
+            # Show changes over time
+            st.subheader("Changes Over Time")
+            timeline_data = filtered_df.copy()
+            timeline_data['date'] = timeline_data['timestamp'].dt.date
+            daily_changes = timeline_data.groupby('date').size().reset_index(name='count')
+            st.line_chart(data=daily_changes.set_index('date'))
+
+            # Display individual changes
+            st.subheader("Change Details")
+            for idx, change in filtered_df.iterrows():
+                change_data = change['change_data']
+                with st.expander(
+                    f"{self._get_change_icon(change['type'])} {change['timestamp'].strftime('%Y-%m-%d %H:%M:%S')} - {change['type'].replace('_', ' ').title()}"
+                ):
+                    st.write(f"**Location:** {change['location']}")
+                    st.write(f"**URL:** {change['url']}")
+
+                    if change['type'] == 'visual_change':
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.write("Before:")
+                            st.image(change_data['before_image'])
+                        with col2:
+                            st.write("After:")
+                            st.image(change_data['after_image'])
+                        with col3:
+                            st.write("Difference:")
+                            st.image(change_data['diff_image'])
+                    else:
+                        diff_viz = DiffVisualizer(key_prefix=f"change_{idx}")
+                        diff_viz.visualize_diff(
+                            change_data.get('before', ''),
+                            change_data.get('after', '')
+                        )
 
     def _render_comparison_view(self, df: pd.DataFrame):
         """Render the comparison view tab"""
