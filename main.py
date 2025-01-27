@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta # timedelta imported here
+from datetime import datetime, timedelta
 import time
 from scraper import WebScraper
 from change_detector import ChangeDetector
@@ -16,38 +16,165 @@ data_manager = DataManager()
 scraper = WebScraper()
 change_detector = ChangeDetector()
 notifier = EmailNotifier()
-diff_visualizer = DiffVisualizer(key_prefix="demo")  # Add key prefix for demo visualizer
-timeline_visualizer = TimelineVisualizer()  # Timeline visualizer has its own prefixed diff_visualizer
+diff_visualizer = DiffVisualizer(key_prefix="demo")
+timeline_visualizer = TimelineVisualizer()
 
 # Initialize scheduler
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-def check_website(url: str):
-    """Perform website check and detect changes"""
-    try:
-        with st.spinner(f"Checking {url}..."):
-            current_content = scraper.scrape_website(url)
-            changes = change_detector.detect_changes(current_content)
-
-            if changes:
-                data_manager.store_changes(changes, url)
-                notifier.send_notification(changes)
-                st.success(f"Found {len(changes)} changes on {url}")
-            else:
-                st.info(f"No changes detected on {url}")
-
-    except Exception as e:
-        st.error(f"Error checking website: {str(e)}")
-
 # Streamlit UI
-st.title("Website Monitoring Tool")
-st.subheader("Monitor Multiple Websites for Changes")
+st.set_page_config(layout="wide", page_title="Website Monitor")
+
+# Custom CSS for better visual hierarchy
+st.markdown("""
+<style>
+    .metric-card {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 1rem;
+        background-color: white;
+    }
+    .status-active {
+        color: #28a745;
+    }
+    .status-inactive {
+        color: #dc3545;
+    }
+    .notification-settings {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 5px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3 = st.tabs(["Website Management", "Change Timeline", "Demo"])
+tab1, tab2, tab3, tab4 = st.tabs(["Dashboard", "Website Management", "Change Timeline", "Demo"])
 
 with tab1:
+    st.title("📊 Monitoring Dashboard")
+
+    # Get all monitored websites and their data
+    websites = data_manager.get_website_configs()
+    all_changes = data_manager.get_recent_changes()
+
+    if not websites:
+        st.info("No websites are being monitored yet. Add websites in the Website Management tab.")
+    else:
+        # Overview Statistics
+        st.subheader("📈 Overview")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric(
+                "Websites Monitored",
+                len(websites),
+                delta=None,
+                help="Total number of websites being monitored"
+            )
+
+        with col2:
+            active_jobs = len(scheduler.get_jobs())
+            st.metric(
+                "Active Monitors",
+                active_jobs,
+                delta=None,
+                help="Number of active monitoring jobs"
+            )
+
+        with col3:
+            recent_changes = len(all_changes)
+            st.metric(
+                "Recent Changes",
+                recent_changes,
+                delta=None,
+                help="Number of changes detected in the last 24 hours"
+            )
+
+        # Individual Website Cards
+        st.subheader("🌐 Website Status")
+
+        for website in websites:
+            with st.expander(f"📊 {website['url']}", expanded=True):
+                cols = st.columns([2, 1])
+
+                with cols[0]:
+                    # Website Details
+                    st.markdown(f"""
+                    <div class="metric-card">
+                        <h4>Monitoring Details</h4>
+                        <p><strong>Check Frequency:</strong> {website['frequency']}</p>
+                        <p><strong>Added:</strong> {website['added_at']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Recent Changes
+                    website_changes = [c for c in all_changes if c['url'] == website['url']]
+                    if website_changes:
+                        st.markdown("##### Recent Changes")
+                        for change in website_changes[-3:]:  # Show last 3 changes
+                            st.markdown(f"""
+                            <div style='border-left: 3px solid #1f77b4; padding-left: 10px; margin: 5px 0;'>
+                                <p><strong>{change['type'].replace('_', ' ').title()}</strong><br>
+                                <small>{change['timestamp']}</small></p>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                with cols[1]:
+                    # Quick Actions
+                    st.markdown("##### Quick Actions")
+                    if st.button("Check Now", key=f"quick_check_{website['url']}"):
+                        with st.spinner("Checking website..."):
+                            check_website(website['url'])
+
+                    # Last check time
+                    job = next((job for job in scheduler.get_jobs()
+                              if job.id == f"check_{website['url']}"), None)
+                    if job:
+                        st.markdown(f"Next check: {job.next_run_time}")
+
+        # Notification Settings
+        st.subheader("🔔 Notification Preferences")
+        with st.expander("Configure Notifications", expanded=False):
+            notification_email = st.text_input(
+                "Email for notifications",
+                key="dashboard_email",
+                value=notifier.email_recipient if notifier.email_recipient else "",
+                help="Enter your email to receive change notifications"
+            )
+
+            if st.button("Save Notification Settings"):
+                notifier.set_email(notification_email)
+                st.success("Notification settings saved!")
+
+        # Change Analytics
+        st.subheader("📊 Change Analytics")
+        if all_changes:
+            # Convert changes to DataFrame for analysis
+            changes_df = pd.DataFrame([
+                {
+                    'timestamp': datetime.fromisoformat(c['timestamp']),
+                    'type': c['type'],
+                    'url': c['url']
+                }
+                for c in all_changes
+            ])
+
+            # Group changes by date and type
+            daily_changes = changes_df.groupby([
+                changes_df['timestamp'].dt.date,
+                'type'
+            ]).size().unstack(fill_value=0)
+
+            # Plot changes over time
+            st.line_chart(daily_changes)
+
+            # Show change distribution
+            st.bar_chart(changes_df['type'].value_counts())
+
+
+with tab2:
     # Website Management
     col1, col2 = st.columns([2, 1])
 
@@ -108,7 +235,7 @@ with tab1:
                 data_manager.delete_website_config(website['url'])
                 st.rerun()
 
-with tab2:
+with tab3:
     # Display changes with timeline
     st.header("Website Changes Timeline")
     changes = data_manager.get_recent_changes()
@@ -132,7 +259,7 @@ with tab2:
     for job in scheduler.get_jobs():
         st.write(f"Next check for {job.args[0]}: {job.next_run_time}")
 
-with tab3:
+with tab4:
     # Demo section
     st.header("Change Visualization Demo")
     st.write("Here's an example of how changes are visualized when detected:")
@@ -261,3 +388,20 @@ with tab3:
             st.code(change['before'])
             st.write("After:")
             st.code(change['after'])
+
+def check_website(url: str):
+    """Perform website check and detect changes"""
+    try:
+        with st.spinner(f"Checking {url}..."):
+            current_content = scraper.scrape_website(url)
+            changes = change_detector.detect_changes(current_content)
+
+            if changes:
+                data_manager.store_changes(changes, url)
+                notifier.send_notification(changes)
+                st.success(f"Found {len(changes)} changes on {url}")
+            else:
+                st.info(f"No changes detected on {url}")
+
+    except Exception as e:
+        st.error(f"Error checking website: {str(e)}")
