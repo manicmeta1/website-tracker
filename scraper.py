@@ -40,6 +40,10 @@ class WebScraper:
     def _normalize_url(self, url: str) -> str:
         """Normalize URL and standardize domain format"""
         try:
+            # Handle URLs without scheme
+            if not url.startswith(('http://', 'https://')):
+                url = 'https://' + url.lstrip('/')
+
             parsed = urlparse(url)
             netloc = parsed.netloc.lower()
 
@@ -51,23 +55,19 @@ class WebScraper:
             path = parsed.path
             if not path:
                 path = '/'
-            elif not path.startswith('/'):
-                path = '/' + path
 
-            # Add scheme if missing
-            scheme = parsed.scheme or 'https'
-
-            clean_url = f"{scheme}://{netloc}{path}"
+            # Construct clean URL
+            clean_url = f"https://{netloc}{path}"
 
             # Remove trailing slashes except for root path
-            if clean_url.endswith('/') and len(clean_url) > 8 and clean_url != f"{scheme}://{netloc}/":
+            if clean_url.endswith('/') and len(clean_url) > 8 and not clean_url.rstrip('/').endswith(netloc):
                 clean_url = clean_url.rstrip('/')
 
             self._log(f"Normalized URL: {url} -> {clean_url}")
             return clean_url
         except Exception as e:
             self._log(f"Error normalizing URL {url}: {str(e)}")
-            return url
+            raise Exception(f"Invalid URL format: {url}")
 
     def _is_valid_internal_link(self, url: str, base_domain: str) -> bool:
         """Check if URL is a valid internal link"""
