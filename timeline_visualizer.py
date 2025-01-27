@@ -117,9 +117,9 @@ class TimelineVisualizer:
                 if 'before' in change and 'after' in change:
                     st.markdown("**Content Changes**")
                     self.diff_visualizer.visualize_diff(
-                        change['before'],
-                        change['after'],
-                        f"change_{change['timestamp']}"
+                        before_text=change['before'],
+                        after_text=change['after'],
+                        key_prefix=f"change_{change['timestamp']}"
                     )
 
                 st.markdown("---")  # Add separator between changes
@@ -215,8 +215,8 @@ class TimelineVisualizer:
                     else:
                         st.write("Content Changes Between Selected Times:")
                         comparison_diff.visualize_diff(
-                            change1.get('after', ''),
-                            change2.get('after', '')
+                            before_text=change1.get('after', ''),
+                            after_text=change2.get('after', '')
                         )
 
     def _render_analytics_view(self, df: pd.DataFrame):
