@@ -11,6 +11,10 @@ from diff_visualizer import DiffVisualizer
 from bs4 import BeautifulSoup
 from timeline_visualizer import TimelineVisualizer
 
+def _normalize_job_id(url: str) -> str:
+    """Normalize URL for job ID to ensure consistency"""
+    return url.replace('https://', '').replace('http://', '').strip('/')
+
 # Initialize components
 data_manager = DataManager()
 scraper = WebScraper()
@@ -409,10 +413,6 @@ with tab4:
             st.write("After:")
             st.code(change['after'])
 
-
-def _normalize_job_id(url: str) -> str:
-    """Normalize URL for job ID to ensure consistency"""
-    return url.replace('https://', '').replace('http://', '').strip('/')
 
 def check_website(url: str, crawl_all_pages: bool = False):
     """Perform website check and detect changes"""
