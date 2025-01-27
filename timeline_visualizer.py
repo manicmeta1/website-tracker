@@ -14,17 +14,125 @@ class TimelineVisualizer:
             'medium': '#FDD835',    # Yellow for medium (4-5)
             'low': '#66BB6A'        # Green for low (1-3)
         }
+        # Add detailed explanations for significance levels
+        self.significance_explanations = {
+            'critical': """Critical changes (8-10):
+            • Major impact on business operations
+            • Immediate attention required
+            • Potentially affects revenue or user experience
+            • Examples: Pricing changes, Product removals, Major UI changes""",
+            'high': """High-impact changes (6-7):
+            • Significant modifications to content or structure
+            • Should be reviewed soon
+            • May affect user navigation or content accessibility
+            • Examples: Menu structure changes, New features, Content reorganization""",
+            'medium': """Medium-impact changes (4-5):
+            • Moderate modifications to content
+            • Regular monitoring recommended
+            • Minor impact on user experience
+            • Examples: Text updates, Style changes, Image updates""",
+            'low': """Low-impact changes (1-3):
+            • Minor updates or refinements
+            • Routine changes
+            • Minimal impact on user experience
+            • Examples: Typography updates, Small text changes, Minor style adjustments"""
+        }
 
-    def _get_significance_color(self, score: int) -> str:
-        """Return color based on significance score"""
+    def _get_significance_tooltip(self, score: int) -> str:
+        """Generate detailed tooltip text based on significance score"""
         if score >= 8:
-            return self.significance_colors['critical']
+            return self.significance_explanations['critical']
         elif score >= 6:
-            return self.significance_colors['high']
+            return self.significance_explanations['high']
         elif score >= 4:
-            return self.significance_colors['medium']
+            return self.significance_explanations['medium']
         else:
-            return self.significance_colors['low']
+            return self.significance_explanations['low']
+
+    def _show_significance_legend(self):
+        """Display a legend explaining significance colors with tooltips"""
+        st.markdown("#### 📊 Change Significance Legend")
+        cols = st.columns(4)
+        for i, (level, color) in enumerate(self.significance_colors.items()):
+            with cols[i]:
+                st.markdown(
+                    f'<div style="background-color: {color}; padding: 10px; '
+                    f'border-radius: 5px; color: {"black" if level in ["medium", "low"] else "white"}; '
+                    f'text-align: center;">{level.title()}</div>',
+                    unsafe_allow_html=True,
+                    help=self.significance_explanations[level]  # Add tooltip to legend
+                )
+
+    def visualize_timeline(self, changes: List[Dict[str, Any]]):
+        """Create an interactive timeline visualization of changes with tooltips"""
+        if not changes:
+            st.info("No changes to display in the timeline.")
+            return
+
+        # Display significance legend with tooltips
+        self._show_significance_legend()
+
+        # Group changes by URL
+        changes_by_url = {}
+        for change in changes:
+            url = change.get('url', 'Unknown')
+            if url not in changes_by_url:
+                changes_by_url[url] = []
+            changes_by_url[url].append(change)
+
+        # Display changes for each URL
+        for url_idx, (url, url_changes) in enumerate(changes_by_url.items()):
+            st.markdown(f"### 🌐 {url}")
+
+            # Sort changes by timestamp in reverse order
+            sorted_changes = sorted(url_changes, key=lambda x: x['timestamp'], reverse=True)
+
+            for change_idx, change in enumerate(sorted_changes):
+                score = change.get('significance_score', 5)
+                color = self._get_significance_color(score)
+                bg_color = self._hex_to_rgba(color)
+                tooltip = self._get_significance_tooltip(score)
+
+                # Create container for the change card with tooltip
+                with st.container():
+                    # Add help tooltip to the entire change card
+                    st.markdown(
+                        f'<div style="border-left: 5px solid {color}; padding: 10px; margin: 10px 0; '
+                        f'background-color: {bg_color};">'
+                        f'<h4>{change["type"].replace("_", " ").title()}</h4>'
+                        f'<p><strong>Time:</strong> {change["timestamp"]}</p>'
+                        f'<p><strong>Location:</strong> {change["location"]}</p>'
+                        f'<p><strong>Significance:</strong> {score} ({self._get_significance_label(score)})</p>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                        help=tooltip  # Add tooltip to the change card
+                    )
+
+                    # Show analysis in columns with tooltips
+                    if 'analysis' in change:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("**Impact Analysis**",
+                                      help="Detailed analysis of the change's impact on the website")
+                            st.write(f"- Category: {change['analysis'].get('impact_category', 'Unknown')}")
+                            st.write(f"- Business Relevance: {change['analysis'].get('business_relevance', 'Unknown')}")
+                        with col2:
+                            st.markdown("**Recommendations**",
+                                      help="Suggested actions based on the change analysis")
+                            st.write(f"- {change['analysis'].get('recommendations', 'No recommendations available')}")
+                            st.write(f"- {change['analysis'].get('explanation', 'No explanation available')}")
+
+                    # Show content changes
+                    if 'before' in change and 'after' in change:
+                        st.markdown("**Content Changes**",
+                                  help="View the specific content that was changed")
+                        diff_viz = DiffVisualizer(key_prefix=f"timeline_diff_{url_idx}_{change_idx}")
+                        diff_viz.visualize_diff(
+                            change['before'],
+                            change['after']
+                        )
+
+                st.markdown("---")  # Add separator between changes
 
     def _get_significance_label(self, score: int) -> str:
         """Return significance label based on score"""
