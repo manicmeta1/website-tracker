@@ -23,12 +23,38 @@ scheduler.start()
 def check_website(url: str):
     """Perform website check and detect changes"""
     try:
-        current_content = scraper.scrape_website(url)
-        changes = change_detector.detect_changes(current_content)
+        with st.spinner(f"Checking {url}..."):
+            current_content = scraper.scrape_website(url)
+            changes = change_detector.detect_changes(current_content)
 
-        if changes:
-            data_manager.store_changes(changes, url)
-            notifier.send_notification(changes)
+            if changes:
+                data_manager.store_changes(changes, url)
+                notifier.send_notification(changes)
+                st.success(f"Found {len(changes)} changes on {url}")
+
+                # Display the changes immediately
+                with st.expander(f"Latest Changes for {url}", expanded=True):
+                    for change in changes:
+                        st.write(f"Detected on {change['timestamp']}")
+                        st.write("Type:", change['type'])
+                        st.write("Location:", change['location'])
+
+                        # Calculate and display change statistics
+                        stats = diff_visualizer.get_diff_stats(change['before'], change['after'])
+                        st.write("Change Statistics:")
+                        stat_cols = st.columns(3)
+                        with stat_cols[0]:
+                            st.metric("Words Added", stats['words_added'])
+                        with stat_cols[1]:
+                            st.metric("Words Removed", stats['words_removed'])
+                        with stat_cols[2]:
+                            st.metric("Total Changes", stats['total_changes'])
+
+                        # Advanced diff visualization
+                        diff_visualizer.visualize_diff(change['before'], change['after'])
+                        st.divider()
+            else:
+                st.info(f"No changes detected on {url}")
 
     except Exception as e:
         st.error(f"Error checking website: {str(e)}")
@@ -138,10 +164,10 @@ else:
 # Manual check button
 if websites:
     if st.button("Check All Now"):
-        with st.spinner("Checking websites..."):
-            for website in websites:
-                check_website(website['url'])
-        st.success("Check completed!")
+        st.write("Starting website checks...")
+        for website in websites:
+            check_website(website['url'])
+        st.success("All checks completed!")
 
 # Show monitoring status
 st.sidebar.header("Monitoring Status")
