@@ -20,6 +20,7 @@ class WebScraper:
             'Upgrade-Insecure-Requests': '1'
         }
         self.screenshot_manager = ScreenshotManager()
+        self.visited_urls = set()  # Track visited URLs to avoid duplicates
 
     def _normalize_url(self, url: str) -> str:
         """Normalize URL by adding https:// if no scheme is provided"""
@@ -76,73 +77,110 @@ class WebScraper:
 
         return menus
 
-    def scrape_website(self, url: str) -> Dict[str, Any]:
-        """Scrapes website content and returns structured data including styles and structure"""
+    def scrape_website(self, url: str, crawl_all_pages: bool = False) -> Dict[str, Any]:
+        """Scrapes website content and returns structured data"""
         try:
             # Normalize URL
             url = self._normalize_url(url)
+            base_domain = urlparse(url).netloc
 
-            # Add a small random delay
-            time.sleep(random.uniform(1, 3))
+            # Initialize results
+            all_content = []
+            self.visited_urls.clear()  # Reset visited URLs for new scrape
 
-            # Get raw HTML
-            session = requests.Session()
-            response = session.get(url, headers=self.headers, timeout=30)
-            response.raise_for_status()
-            html_content = response.text
+            # Scrape initial URL
+            initial_content = self._scrape_single_page(url)
+            all_content.append(initial_content)
 
-            # Parse HTML
-            soup = BeautifulSoup(html_content, 'html.parser')
+            # If crawling is enabled, follow links within the same domain
+            if crawl_all_pages:
+                urls_to_visit = set([link for link in initial_content['links'] 
+                                   if urlparse(link).netloc == base_domain])
 
-            # Capture screenshot
-            screenshot_path = self.screenshot_manager.capture_screenshot(url)
+                while urls_to_visit and len(self.visited_urls) < 50:  # Limit to 50 pages
+                    next_url = urls_to_visit.pop()
 
-            # Extract text content using trafilatura
-            downloaded = trafilatura.fetch_url(url)
-            if not downloaded:
-                raise Exception("Failed to download content")
+                    if next_url not in self.visited_urls:
+                        try:
+                            # Add small delay between requests
+                            time.sleep(random.uniform(1, 2))
 
-            text_content = trafilatura.extract(downloaded)
-            if not text_content:
-                text_content = ' '.join([p.get_text() for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
+                            page_content = self._scrape_single_page(next_url)
+                            all_content.append(page_content)
 
-            # Extract links
-            links = []
-            for a in soup.find_all('a', href=True):
-                href = a.get('href')
-                if href:
-                    full_url = urljoin(url, href)
-                    links.append(self._normalize_url(full_url))
+                            # Add new links to visit
+                            new_links = set([link for link in page_content['links']
+                                           if urlparse(link).netloc == base_domain])
+                            urls_to_visit.update(new_links - self.visited_urls)
 
-            # Extract styles and structure
-            styles = self._extract_styles(soup)
-            menu_structure = self._extract_menu_structure(soup)
+                        except Exception as e:
+                            print(f"Error scraping {next_url}: {str(e)}")
+                            continue
 
-            # Create content fingerprint
-            content_hash = hashlib.md5(html_content.encode()).hexdigest()
-
-            return {
+            # Combine all content
+            combined_content = {
                 'url': url,
-                'timestamp': response.headers.get('Date', time.strftime('%Y-%m-%d %H:%M:%S')),
-                'html_content': html_content,
-                'text_content': text_content,
-                'links': links,
-                'content_hash': content_hash,
-                'styles': styles,
-                'menu_structure': menu_structure,
-                'screenshot_path': screenshot_path
+                'timestamp': all_content[0]['timestamp'],
+                'pages': all_content,
+                'crawl_all_pages': crawl_all_pages
             }
 
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 403:
-                raise Exception(f"Access forbidden - website may be blocking automated access. Try again later or contact the website administrator.")
-            elif e.response.status_code == 404:
-                raise Exception(f"Page not found - please check if the URL is correct.")
-            elif e.response.status_code == 429:
-                raise Exception(f"Too many requests - please wait a while before trying again.")
-            else:
-                raise Exception(f"HTTP error occurred: {str(e)}")
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Failed to scrape website: {str(e)}")
+            return combined_content
+
         except Exception as e:
-            raise Exception(f"Error while scraping: {str(e)}")
+            raise Exception(f"Failed to scrape website: {str(e)}")
+
+    def _scrape_single_page(self, url: str) -> Dict[str, Any]:
+        """Scrapes a single page and returns its content"""
+        if url in self.visited_urls:
+            return None
+
+        self.visited_urls.add(url)
+
+        # Get raw HTML
+        session = requests.Session()
+        response = session.get(url, headers=self.headers, timeout=30)
+        response.raise_for_status()
+        html_content = response.text
+
+        # Parse HTML
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        # Capture screenshot
+        screenshot_path = self.screenshot_manager.capture_screenshot(url)
+
+        # Extract text content using trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        if not downloaded:
+            raise Exception("Failed to download content")
+
+        text_content = trafilatura.extract(downloaded)
+        if not text_content:
+            text_content = ' '.join([p.get_text() for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
+
+        # Extract links
+        links = []
+        for a in soup.find_all('a', href=True):
+            href = a.get('href')
+            if href:
+                full_url = urljoin(url, href)
+                links.append(self._normalize_url(full_url))
+
+        # Extract styles and structure
+        styles = self._extract_styles(soup)
+        menu_structure = self._extract_menu_structure(soup)
+
+        # Create content fingerprint
+        content_hash = hashlib.md5(html_content.encode()).hexdigest()
+
+        return {
+            'url': url,
+            'timestamp': response.headers.get('Date', time.strftime('%Y-%m-%d %H:%M:%S')),
+            'html_content': html_content,
+            'text_content': text_content,
+            'links': links,
+            'content_hash': content_hash,
+            'styles': styles,
+            'menu_structure': menu_structure,
+            'screenshot_path': screenshot_path
+        }

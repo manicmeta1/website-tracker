@@ -126,11 +126,11 @@ with tab1:
                     st.markdown("##### Quick Actions")
                     if st.button("Check Now", key=f"quick_check_{website['url']}"):
                         with st.spinner("Checking website..."):
-                            check_website(website['url'])
+                            check_website(website['url'], website.get('crawl_all_pages', False))
 
                     # Last check time
                     job = next((job for job in scheduler.get_jobs()
-                              if job.id == f"check_{website['url']}"), None)
+                                  if job.id == f"check_{website['url']}"), None)
                     if job:
                         st.markdown(f"Next check: {job.next_run_time}")
 
@@ -188,11 +188,19 @@ with tab2:
                 key="check_frequency"
             )
 
+            # Add toggle for crawling all pages
+            crawl_all_pages = st.toggle(
+                "Monitor all pages",
+                help="When enabled, the system will automatically discover and monitor all pages under this domain.",
+                key="crawl_all_pages"
+            )
+
             if st.form_submit_button("Add Website"):
                 if new_url:
                     website_config = {
                         "url": new_url,
                         "frequency": check_frequency,
+                        "crawl_all_pages": crawl_all_pages,
                         "added_at": datetime.now().isoformat()
                     }
                     data_manager.store_website_config(website_config)
@@ -210,7 +218,7 @@ with tab2:
                         'interval',
                         seconds=freq_map[check_frequency],
                         id=f'check_{new_url}',
-                        args=[new_url]
+                        args=[new_url, crawl_all_pages]
                     )
                     st.success(f"Added {new_url} to monitoring")
 
@@ -251,7 +259,7 @@ with tab3:
         if st.button("Check All Now"):
             st.write("Starting website checks...")
             for website in websites:
-                check_website(website['url'])
+                check_website(website['url'], website.get('crawl_all_pages', False))
             st.success("All checks completed!")
 
     # Show monitoring status
@@ -389,11 +397,12 @@ with tab4:
             st.write("After:")
             st.code(change['after'])
 
-def check_website(url: str):
+
+def check_website(url: str, crawl_all_pages: bool = False):
     """Perform website check and detect changes"""
     try:
         with st.spinner(f"Checking {url}..."):
-            current_content = scraper.scrape_website(url)
+            current_content = scraper.scrape_website(url, crawl_all_pages)
             changes = change_detector.detect_changes(current_content)
 
             if changes:
