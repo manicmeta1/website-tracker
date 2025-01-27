@@ -1,17 +1,8 @@
 [
   {
-    "url": "https://www.edicanaturals.com",
-    "frequency": "1 hour",
-    "added_at": "2025-01-27T13:23:55.868652"
-  },
-  {
     "url": "edicanaturals.com",
     "frequency": "1 hour",
-    "added_at": "2025-01-27T13:25:18.981469"
-  },
-  {
-    "url": "intrumed-surgical.com",
-    "frequency": "1 hour",
-    "added_at": "2025-01-27T13:48:58.388171"
+    "crawl_all_pages": true,
+    "added_at": "2025-01-27T15:48:33.334730"
   }
 ]

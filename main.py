@@ -15,6 +15,23 @@ def _normalize_job_id(url: str) -> str:
     """Normalize URL for job ID to ensure consistency"""
     return url.replace('https://', '').replace('http://', '').strip('/')
 
+def check_website(url: str, crawl_all_pages: bool = False):
+    """Perform website check and detect changes"""
+    try:
+        with st.spinner(f"Checking {url}..."):
+            current_content = scraper.scrape_website(url, crawl_all_pages)
+            changes = change_detector.detect_changes(current_content)
+
+            if changes:
+                data_manager.store_changes(changes, url)
+                notifier.send_notification(changes)
+                st.success(f"Found {len(changes)} changes on {url}")
+            else:
+                st.info(f"No changes detected on {url}")
+
+    except Exception as e:
+        st.error(f"Error checking website: {str(e)}")
+
 # Initialize components
 data_manager = DataManager()
 scraper = WebScraper()
@@ -412,21 +429,3 @@ with tab4:
             st.code(change['before'])
             st.write("After:")
             st.code(change['after'])
-
-
-def check_website(url: str, crawl_all_pages: bool = False):
-    """Perform website check and detect changes"""
-    try:
-        with st.spinner(f"Checking {url}..."):
-            current_content = scraper.scrape_website(url, crawl_all_pages)
-            changes = change_detector.detect_changes(current_content)
-
-            if changes:
-                data_manager.store_changes(changes, url)
-                notifier.send_notification(changes)
-                st.success(f"Found {len(changes)} changes on {url}")
-            else:
-                st.info(f"No changes detected on {url}")
-
-    except Exception as e:
-        st.error(f"Error checking website: {str(e)}")
