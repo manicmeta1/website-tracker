@@ -60,13 +60,13 @@ class TimelineVisualizer:
                 selected_url = st.selectbox(
                     "Filter by Website",
                     options=['All'] + list(df['url'].unique()),
-                    key="url_filter"
+                    key="timeline_url_filter"
                 )
             with col2:
                 selected_type = st.selectbox(
                     "Filter by Change Type",
                     options=['All'] + list(df['type'].unique()),
-                    key="type_filter"
+                    key="timeline_type_filter"
                 )
 
             # Apply filters
@@ -84,7 +84,11 @@ class TimelineVisualizer:
             for date in dates:
                 day_changes = filtered_df[filtered_df['date'] == date]
                 with st.expander(f"📅 {date.strftime('%Y-%m-%d')} ({len(day_changes)} changes)", expanded=True):
-                    for _, change in day_changes.iterrows():
+                    for idx, change in day_changes.iterrows():
+                        # Create unique prefix for each change entry
+                        change_prefix = f"timeline_{change['timestamp'].strftime('%Y%m%d%H%M%S')}_{idx}"
+                        diff_viz = DiffVisualizer(key_prefix=change_prefix)
+
                         # Create a card-like display for each change
                         st.markdown(f"""
                         <div style='border:1px solid #ddd; border-radius:5px; padding:10px; margin:5px;'>
@@ -110,7 +114,7 @@ class TimelineVisualizer:
                                 st.image(f"data:image/png;base64,{change_data['diff_image']}")
                         else:
                             if 'before' in change_data or 'after' in change_data:
-                                self.diff_visualizer.visualize_diff(
+                                diff_viz.visualize_diff(
                                     change_data.get('before', ''),
                                     change_data.get('after', '')
                                 )
@@ -124,7 +128,7 @@ class TimelineVisualizer:
             url_to_compare = st.selectbox(
                 "Select Website to Compare",
                 options=list(df['url'].unique()),
-                key="compare_url"
+                key="timeline_compare_url"
             )
 
             # Filter changes for selected URL
@@ -137,7 +141,7 @@ class TimelineVisualizer:
                     "Select First Timestamp",
                     options=url_changes['timestamp'],
                     format_func=lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
-                    key="timestamp1"
+                    key="timeline_timestamp1"
                 )
 
             if timestamp1:
@@ -148,7 +152,7 @@ class TimelineVisualizer:
                         "Select Second Timestamp",
                         options=later_timestamps,
                         format_func=lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
-                        key="timestamp2"
+                        key="timeline_timestamp2"
                     )
 
                 if timestamp2:
@@ -157,6 +161,9 @@ class TimelineVisualizer:
                     change2 = url_changes[url_changes['timestamp'] == timestamp2].iloc[0]['change_data']
 
                     st.markdown("### Comparison Results")
+
+                    # Create a unique diff visualizer for the comparison view
+                    comparison_diff = DiffVisualizer(key_prefix=f"timeline_comparison_{timestamp1.strftime('%Y%m%d%H%M%S')}_{timestamp2.strftime('%Y%m%d%H%M%S')}")
 
                     # Display comparison based on change type
                     if change1['type'] == 'visual_change' and change2['type'] == 'visual_change':
@@ -169,7 +176,7 @@ class TimelineVisualizer:
                             st.image(f"data:image/png;base64,{change2['after_image']}")
                     else:
                         st.write("Content Changes Between Selected Times:")
-                        self.diff_visualizer.visualize_diff(
+                        comparison_diff.visualize_diff(
                             change1.get('after', ''),
                             change2.get('after', '')
                         )
