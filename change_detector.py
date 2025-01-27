@@ -18,6 +18,10 @@ class ChangeDetector:
 
         changes = []
 
+        # Debug logging
+        print(f"Detecting changes for {current_content.get('url', 'Unknown URL')}")
+        print(f"Pages data present: {len(current_content.get('pages', []))} pages")
+
         # Check content hash for quick comparison
         if current_content['content_hash'] == self.previous_content['content_hash']:
             return []
@@ -32,6 +36,7 @@ class ChangeDetector:
             # Include pages information in each change
             for change in text_changes:
                 change['pages'] = current_content.get('pages', [])
+                print(f"Added pages data to text change: {len(change['pages'])} pages")
             changes.extend(text_changes)
 
         # Compare links
@@ -44,31 +49,36 @@ class ChangeDetector:
             # Include pages information in each change
             for change in link_changes:
                 change['pages'] = current_content.get('pages', [])
+                print(f"Added pages data to link change: {len(change['pages'])} pages")
             changes.extend(link_changes)
 
-        # Compare styles
-        style_changes = self._compare_styles(
-            self.previous_content.get('styles', {}),
-            current_content.get('styles', {}),
-            current_content['timestamp']
-        )
-        if style_changes:
-            # Include pages information in each change
-            for change in style_changes:
-                change['pages'] = current_content.get('pages', [])
-            changes.extend(style_changes)
+        # Compare styles (if available)
+        if 'styles' in self.previous_content and 'styles' in current_content:
+            style_changes = self._compare_styles(
+                self.previous_content['styles'],
+                current_content['styles'],
+                current_content['timestamp']
+            )
+            if style_changes:
+                # Include pages information in each change
+                for change in style_changes:
+                    change['pages'] = current_content.get('pages', [])
+                    print(f"Added pages data to style change: {len(change['pages'])} pages")
+                changes.extend(style_changes)
 
-        # Compare menu structure
-        menu_changes = self._compare_menu_structure(
-            self.previous_content.get('menu_structure', []),
-            current_content.get('menu_structure', []),
-            current_content['timestamp']
-        )
-        if menu_changes:
-            # Include pages information in each change
-            for change in menu_changes:
-                change['pages'] = current_content.get('pages', [])
-            changes.extend(menu_changes)
+        # Compare menu structure (if available)
+        if 'menu_structure' in self.previous_content and 'menu_structure' in current_content:
+            menu_changes = self._compare_menu_structure(
+                self.previous_content['menu_structure'],
+                current_content['menu_structure'],
+                current_content['timestamp']
+            )
+            if menu_changes:
+                # Include pages information in each change
+                for change in menu_changes:
+                    change['pages'] = current_content.get('pages', [])
+                    print(f"Added pages data to menu change: {len(change['pages'])} pages")
+                changes.extend(menu_changes)
 
         # Compare screenshots
         if 'screenshot_path' in self.previous_content and 'screenshot_path' in current_content:
@@ -86,6 +96,7 @@ class ChangeDetector:
                     'timestamp': current_content['timestamp'],
                     'pages': current_content.get('pages', [])  # Include pages information
                 }
+                print(f"Added pages data to visual change: {len(visual_change['pages'])} pages")
                 changes.append(visual_change)
             except Exception as e:
                 print(f"Warning: Failed to compare screenshots: {str(e)}")
@@ -95,6 +106,7 @@ class ChangeDetector:
 
         # Score the changes using AI
         if changes:
+            print(f"Total changes detected: {len(changes)}")
             changes = self.change_scorer.score_changes(changes)
 
         return changes

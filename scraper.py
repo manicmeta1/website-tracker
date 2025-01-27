@@ -77,85 +77,6 @@ class WebScraper:
 
         return menus
 
-    def scrape_website(self, url: str, crawl_all_pages: bool = False) -> Dict[str, Any]:
-        """Scrapes website content and returns structured data"""
-        try:
-            # Normalize URL
-            url = self._normalize_url(url)
-            base_domain = urlparse(url).netloc
-
-            # Initialize results
-            pages_info = []
-            self.visited_urls.clear()  # Reset visited URLs for new scrape
-
-            # Scrape initial URL
-            initial_content = self._scrape_single_page(url)
-            if initial_content:
-                pages_info.append({
-                    'url': url,
-                    'location': '/',  # Root page
-                    'content': initial_content
-                })
-
-            # If crawling is enabled, follow links within the same domain
-            if crawl_all_pages:
-                urls_to_visit = set([
-                    link for link in initial_content['links']
-                    if urlparse(link).netloc == base_domain
-                ])
-
-                while urls_to_visit and len(self.visited_urls) < 50:  # Limit to 50 pages
-                    next_url = urls_to_visit.pop()
-
-                    if next_url not in self.visited_urls:
-                        try:
-                            # Add small delay between requests
-                            time.sleep(random.uniform(1, 2))
-
-                            page_content = self._scrape_single_page(next_url)
-                            if page_content:
-                                # Extract page location from URL
-                                parsed_url = urlparse(next_url)
-                                location = parsed_url.path if parsed_url.path else '/'
-
-                                pages_info.append({
-                                    'url': next_url,
-                                    'location': location,
-                                    'content': page_content
-                                })
-
-                                # Add new links to visit
-                                new_links = set([
-                                    link for link in page_content['links']
-                                    if urlparse(link).netloc == base_domain
-                                ])
-                                urls_to_visit.update(new_links - self.visited_urls)
-
-                        except Exception as e:
-                            print(f"Error scraping {next_url}: {str(e)}")
-                            continue
-
-            # Create the combined content structure
-            combined_content = {
-                'url': url,
-                'timestamp': pages_info[0]['content']['timestamp'] if pages_info else None,
-                'pages': pages_info,  # Store full pages information
-                'crawl_all_pages': crawl_all_pages,
-                'content_hash': initial_content['content_hash'] if pages_info else None
-            }
-
-            # Add the initial page's content fields to the root
-            if pages_info:
-                for key in ['html_content', 'text_content', 'links', 'styles', 'menu_structure', 'screenshot_path']:
-                    if key in pages_info[0]['content']:
-                        combined_content[key] = pages_info[0]['content'][key]
-
-            print(f"Scraped {len(pages_info)} pages for {url}")
-            return combined_content
-
-        except Exception as e:
-            raise Exception(f"Failed to scrape website: {str(e)}")
-
     def _scrape_single_page(self, url: str) -> Dict[str, Any]:
         """Scrapes a single page and returns its content"""
         if url in self.visited_urls:
@@ -196,7 +117,9 @@ class WebScraper:
             # Create content fingerprint
             content_hash = hashlib.md5(html_content.encode()).hexdigest()
 
+            # Return page data including URL
             return {
+                'url': url,  # Add URL to the page data
                 'timestamp': response.headers.get('Date', time.strftime('%Y-%m-%d %H:%M:%S')),
                 'html_content': html_content,
                 'text_content': text_content,
@@ -208,3 +131,86 @@ class WebScraper:
         except Exception as e:
             print(f"Error scraping page {url}: {str(e)}")
             return None
+
+    def scrape_website(self, url: str, crawl_all_pages: bool = False) -> Dict[str, Any]:
+        """Scrapes website content and returns structured data"""
+        try:
+            # Normalize URL
+            url = self._normalize_url(url)
+            base_domain = urlparse(url).netloc
+
+            # Initialize results
+            pages_data = []  # Store pages data here
+            self.visited_urls.clear()  # Reset visited URLs for new scrape
+
+            # Scrape initial URL
+            print(f"Starting scrape of {url}")  # Debug log
+            initial_page = self._scrape_single_page(url)
+            if not initial_page:
+                raise Exception(f"Failed to scrape initial page: {url}")
+
+            pages_data.append({
+                'url': url,
+                'location': '/',  # Root page
+                'content': initial_page
+            })
+
+            # If crawling is enabled, follow links within the same domain
+            if crawl_all_pages:
+                urls_to_visit = set([
+                    link for link in initial_page['links']
+                    if urlparse(link).netloc == base_domain
+                ])
+
+                print(f"Found {len(urls_to_visit)} additional pages to crawl")  # Debug log
+
+                while urls_to_visit and len(pages_data) < 50:  # Limit to 50 pages
+                    next_url = urls_to_visit.pop()
+                    print(f"Crawling: {next_url}")  # Debug log
+
+                    if next_url not in self.visited_urls:
+                        try:
+                            # Add small delay between requests
+                            time.sleep(random.uniform(1, 2))
+
+                            page_data = self._scrape_single_page(next_url)
+                            if page_data:
+                                # Extract page location from URL
+                                parsed_url = urlparse(next_url)
+                                location = parsed_url.path if parsed_url.path else '/'
+
+                                pages_data.append({
+                                    'url': next_url,
+                                    'location': location,
+                                    'content': page_data
+                                })
+
+                                # Add new links to visit
+                                new_links = set([
+                                    link for link in page_data['links']
+                                    if urlparse(link).netloc == base_domain
+                                ])
+                                urls_to_visit.update(new_links - self.visited_urls)
+
+                        except Exception as e:
+                            print(f"Error crawling {next_url}: {str(e)}")
+                            continue
+
+            print(f"Completed scrape. Found {len(pages_data)} pages")  # Debug log
+
+            # Create the combined content structure
+            combined_content = {
+                'url': url,
+                'timestamp': initial_page['timestamp'],
+                'text_content': initial_page['text_content'],
+                'links': initial_page['links'],
+                'content_hash': initial_page['content_hash'],
+                'screenshot_path': initial_page['screenshot_path'],
+                'pages': pages_data,  # Include all pages data
+                'crawl_all_pages': crawl_all_pages
+            }
+
+            return combined_content
+
+        except Exception as e:
+            raise Exception(f"Failed to scrape website: {str(e)}")
