@@ -104,8 +104,13 @@ class TimelineVisualizer:
         # Display significance legend with tooltips
         self._show_significance_legend()
 
-        # Get unique websites and pages
-        websites = sorted(list(set(change.get('url', 'Unknown') for change in changes)))
+        # Get all monitored websites from data manager
+        data_manager = DataManager()
+        monitored_websites = [config['url'] for config in data_manager.get_website_configs()]
+
+        # Combine with websites from changes
+        change_websites = list(set(change.get('url', 'Unknown') for change in changes))
+        all_websites = sorted(list(set(monitored_websites + change_websites)))
 
         # Add filters at the top
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -113,7 +118,7 @@ class TimelineVisualizer:
         with col1:
             selected_website = st.selectbox(
                 "Select Website",
-                ["All Websites"] + websites,
+                ["All Websites"] + all_websites,
                 key="timeline_website_filter"
             )
 
@@ -157,7 +162,10 @@ class TimelineVisualizer:
         ]
 
         if not filtered_changes:
-            st.info("No changes found for the selected filters.")
+            if selected_website != "All Websites":
+                st.info(f"No changes found for {selected_website} in the selected date range.")
+            else:
+                st.info("No changes found for the selected date range.")
             return
 
         # Group changes by URL
@@ -342,3 +350,12 @@ class TimelineVisualizer:
             st.markdown("#### Website Activity")
             website_activity = df['url'].value_counts()
             st.bar_chart(website_activity)
+
+class DataManager: # Added DataManager class -  This is a placeholder,  you'll need to implement this based on your actual data source.
+    def get_website_configs(self):
+        # Replace this with your actual data retrieval logic
+        return [
+            {'url': 'https://www.example.com'},
+            {'url': 'https://www.example2.com'},
+            {'url': 'https://www.anotherwebsite.com'}
+        ]
