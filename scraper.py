@@ -15,11 +15,6 @@ class WebScraper:
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'Cache-Control': 'max-age=0',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
             'Connection': 'keep-alive'
         }
         self.screenshot_manager = ScreenshotManager()
@@ -43,50 +38,126 @@ class WebScraper:
         self._logs = []
 
     def _normalize_url(self, url: str) -> str:
-        """Normalize URL and remove fragments/query params"""
-        parsed = urlparse(url)
-        # Remove fragments and query parameters
-        clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-        if not parsed.scheme:
-            clean_url = f"https://{url.split('#')[0].split('?')[0]}"
-        return clean_url.rstrip('/')
+        """Normalize URL and standardize domain format"""
+        try:
+            parsed = urlparse(url)
+            netloc = parsed.netloc.lower()
+
+            # Remove www. if present
+            if netloc.startswith('www.'):
+                netloc = netloc[4:]
+
+            # Reconstruct URL without fragments and query params
+            path = parsed.path
+            if not path:
+                path = '/'
+            elif not path.startswith('/'):
+                path = '/' + path
+
+            # Add scheme if missing
+            scheme = parsed.scheme or 'https'
+
+            clean_url = f"{scheme}://{netloc}{path}"
+
+            # Remove trailing slashes except for root path
+            if clean_url.endswith('/') and len(clean_url) > 8 and clean_url != f"{scheme}://{netloc}/":
+                clean_url = clean_url.rstrip('/')
+
+            self._log(f"Normalized URL: {url} -> {clean_url}")
+            return clean_url
+        except Exception as e:
+            self._log(f"Error normalizing URL {url}: {str(e)}")
+            return url
 
     def _is_valid_internal_link(self, url: str, base_domain: str) -> bool:
         """Check if URL is a valid internal link"""
         try:
+            if not url:
+                return False
+
             parsed = urlparse(url)
-            return (
-                (parsed.netloc == base_domain or not parsed.netloc) and
-                not any(url.lower().endswith(ext) for ext in ['.pdf', '.jpg', '.png', '.gif', '.zip', '.css', '.js']) and
-                not any(term in url.lower() for term in ['logout', 'signout', 'cart', 'checkout'])
+            netloc = parsed.netloc.lower()
+            if netloc.startswith('www.'):
+                netloc = netloc[4:]
+
+            base_domain = base_domain.lower()
+            if base_domain.startswith('www.'):
+                base_domain = base_domain[4:]
+
+            # Check if it's an internal link
+            is_internal = (netloc == base_domain or not netloc)
+
+            # Check if it's not a file or excluded path
+            excluded_extensions = ('.pdf', '.jpg', '.png', '.gif', '.zip', '.css', '.js', '.ico')
+            excluded_terms = ('logout', 'signout', 'cart', 'checkout', 'account', 'login', 'admin')
+
+            is_valid = (
+                is_internal and
+                not url.endswith(excluded_extensions) and
+                not any(term in url.lower() for term in excluded_terms)
             )
-        except:
+
+            if is_valid:
+                self._log(f"Valid internal link found: {url}")
+            return is_valid
+        except Exception as e:
+            self._log(f"Error validating URL {url}: {str(e)}")
             return False
 
     def _extract_links(self, soup: BeautifulSoup, base_url: str, base_domain: str) -> Set[str]:
         """Extract all valid internal links from the page"""
         links = set()
+        self._log(f"Extracting links from {base_url}")
 
-        # Process standard anchor tags
-        for a in soup.find_all(['a', 'link'], href=True):
-            href = a.get('href', '').strip()
-            if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
-                full_url = urljoin(base_url, href)
-                normalized_url = self._normalize_url(full_url)
-                if self._is_valid_internal_link(normalized_url, base_domain):
-                    links.add(normalized_url)
+        # Find all elements that might contain links
+        link_elements = []
 
-        # Look for links in navigation elements
-        for nav in soup.find_all(['nav', 'header', 'footer']):
-            for a in nav.find_all('a', href=True):
+        # Standard navigation elements
+        nav_elements = soup.find_all(['nav', 'header', 'footer', 'ul', 'div'], 
+                                   class_=lambda x: x and any(term in str(x).lower() 
+                                   for term in ['nav', 'menu', 'header', 'footer', 'site-nav']))
+
+        # Shopify-specific navigation
+        shopify_elements = soup.find_all(['div', 'ul'], 
+                                       class_=lambda x: x and any(term in str(x).lower() 
+                                       for term in ['shopify', 'collection', 'product-list']))
+
+        # Add all potential link containers
+        link_elements.extend(nav_elements)
+        link_elements.extend(shopify_elements)
+
+        # Process all link elements
+        for container in link_elements:
+            for a in container.find_all('a', href=True):
                 href = a.get('href', '').strip()
                 if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
+                    try:
+                        full_url = urljoin(base_url, href)
+                        normalized_url = self._normalize_url(full_url)
+
+                        if self._is_valid_internal_link(normalized_url, base_domain):
+                            links.add(normalized_url)
+                            self._log(f"Added link: {normalized_url}")
+                    except Exception as e:
+                        self._log(f"Error processing link {href}: {str(e)}")
+
+        # Also check standalone links
+        for a in soup.find_all('a', href=True):
+            href = a.get('href', '').strip()
+            if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
+                try:
                     full_url = urljoin(base_url, href)
                     normalized_url = self._normalize_url(full_url)
+
                     if self._is_valid_internal_link(normalized_url, base_domain):
                         links.add(normalized_url)
+                        self._log(f"Added standalone link: {normalized_url}")
+                except Exception as e:
+                    self._log(f"Error processing standalone link {href}: {str(e)}")
 
         self._log(f"Extracted {len(links)} valid internal links from {base_url}")
+        for link in links:
+            self._log(f"Found link: {link}")
         return links
 
     def _scrape_single_page(self, url: str, base_domain: str) -> Dict[str, Any]:
@@ -140,7 +211,7 @@ class WebScraper:
             except Exception as e:
                 self._log(f"Attempt {attempt + 1} failed for {url}: {str(e)}")
                 if attempt < self.retry_count - 1:
-                    time.sleep(self.retry_delay * (attempt + 1))  # Exponential backoff
+                    time.sleep(self.retry_delay * (attempt + 1))
                 else:
                     self._log(f"Failed to scrape {url} after {self.retry_count} attempts")
                     return None
@@ -155,6 +226,8 @@ class WebScraper:
             # Normalize URL and extract base domain
             url = self._normalize_url(url)
             base_domain = urlparse(url).netloc
+            if base_domain.startswith('www.'):
+                base_domain = base_domain[4:]
             self._log(f"Base domain: {base_domain}")
 
             # Initialize results
