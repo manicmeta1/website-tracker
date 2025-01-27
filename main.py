@@ -19,15 +19,35 @@ def check_website(url: str, crawl_all_pages: bool = False):
     """Perform website check and detect changes"""
     try:
         with st.spinner(f"Checking {url}..."):
+            # Clear previous content to force new crawl
+            change_detector.previous_content = None
+
+            # Perform the crawl
             current_content = scraper.scrape_website(url, crawl_all_pages)
+
+            # Detect changes
             changes = change_detector.detect_changes(current_content)
 
-            if changes:
-                data_manager.store_changes(changes, url)
-                notifier.send_notification(changes)
-                st.success(f"Found {len(changes)} changes on {url}")
+            # Always store the current content as a change to track pages
+            if not changes:
+                changes = [{
+                    'type': 'site_check',
+                    'location': '/',
+                    'timestamp': datetime.now().isoformat(),
+                    'pages': current_content.get('pages', []),
+                    'url': url
+                }]
+
+            # Store changes
+            data_manager.store_changes(changes, url)
+
+            if len(changes) > 1:  # More than just the site_check
+                st.success(f"Found {len(changes)-1} changes on {url}")
             else:
                 st.info(f"No changes detected on {url}")
+
+            # Force streamlit to rerun to show updated data
+            st.rerun()
 
     except Exception as e:
         st.error(f"Error checking website: {str(e)}")

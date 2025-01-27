@@ -51,6 +51,7 @@ class DataManager:
     def store_changes(self, changes: List[Dict[str, Any]], url: str):
         """Store detected changes for a specific website"""
         try:
+            print(f"Storing changes for {url}: {len(changes)} changes")
             with open(self.changes_file, 'r') as f:
                 existing_changes = json.load(f)
 
@@ -59,28 +60,26 @@ class DataManager:
                 change['url'] = url
                 change['timestamp'] = datetime.now().isoformat()
 
-                # If this is from a multi-page crawl, store the pages info
+                # Store pages data
                 if 'pages' in change:
                     # Extract only necessary page information
                     change['monitored_pages'] = [
                         {'url': page['url'], 'location': page.get('location', 'Unknown')}
-                        for page in change['pages']
+                        for page in change.get('pages', [])
+                        if isinstance(page, dict)
                     ]
-                existing_changes.append(change)
+                    print(f"Stored {len(change['monitored_pages'])} monitored pages for {url}")
 
-                # Debug logging
-                print(f"Storing change of type {change.get('type')} for {url}")
-                if 'monitored_pages' in change:
-                    print(f"Stored {len(change['monitored_pages'])} monitored pages")
+                existing_changes.append(change)
 
             # Keep only last 100 changes per website
             url_changes = {}
             for change in reversed(existing_changes):
-                url = change['url']
-                if url not in url_changes:
-                    url_changes[url] = []
-                if len(url_changes[url]) < 100:
-                    url_changes[url].append(change)
+                change_url = change['url']
+                if change_url not in url_changes:
+                    url_changes[change_url] = []
+                if len(url_changes[change_url]) < 100:
+                    url_changes[change_url].append(change)
 
             # Flatten the changes
             all_changes = []
@@ -90,7 +89,10 @@ class DataManager:
             with open(self.changes_file, 'w') as f:
                 json.dump(all_changes, f, indent=2)
 
+            print(f"Successfully stored changes for {url}")
+
         except Exception as e:
+            print(f"Error storing changes: {str(e)}")
             raise Exception(f"Failed to store changes: {str(e)}")
 
     def get_recent_changes(self, url: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -101,8 +103,12 @@ class DataManager:
 
             if url:
                 changes = [c for c in changes if c['url'] == url]
+                print(f"Retrieved {len(changes)} changes for {url}")
+            else:
+                print(f"Retrieved {len(changes)} total changes")
 
             return changes[-100:]  # Return last 100 changes
 
-        except Exception:
+        except Exception as e:
+            print(f"Error retrieving changes: {str(e)}")
             return []
