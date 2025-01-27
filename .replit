@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "streamlit run main.py"]
+run = ["sh", "-c", "streamlit run test_screenshot.py --server.port=5003 --server.address=0.0.0.0"]
 
 [workflows]
 runButton = "Project"
@@ -17,45 +17,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Website Monitor"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Diff Demo"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Screenshot Demo"
-
-[[workflows.workflow]]
-name = "Website Monitor"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run main.py"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Diff Demo"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run test_diff.py"
-waitForPort = 5001
 
 [[workflows.workflow]]
 name = "Screenshot Demo"

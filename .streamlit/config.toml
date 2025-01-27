@@ -2,7 +2,12 @@
 headless = true
 address = "0.0.0.0"
 port = 5003
+enableCORS = false
+enableXsrfProtection = false
 
 [browser]
 serverAddress = "0.0.0.0"
 serverPort = 5003
+
+[global]
+developmentMode = false
