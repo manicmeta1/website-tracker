@@ -38,6 +38,17 @@ class TimelineVisualizer:
             • Examples: Typography updates, Small text changes, Minor style adjustments"""
         }
 
+    def _get_significance_color(self, score: int) -> str:
+        """Return color based on significance score"""
+        if score >= 8:
+            return self.significance_colors['critical']
+        elif score >= 6:
+            return self.significance_colors['high']
+        elif score >= 4:
+            return self.significance_colors['medium']
+        else:
+            return self.significance_colors['low']
+
     def _get_significance_tooltip(self, score: int) -> str:
         """Generate detailed tooltip text based on significance score"""
         if score >= 8:
@@ -62,6 +73,27 @@ class TimelineVisualizer:
                     unsafe_allow_html=True,
                     help=self.significance_explanations[level]  # Add tooltip to legend
                 )
+
+    def _get_significance_label(self, score: int) -> str:
+        """Return significance label based on score"""
+        if score >= 8:
+            return "Critical"
+        elif score >= 6:
+            return "High"
+        elif score >= 4:
+            return "Medium"
+        else:
+            return "Low"
+
+    def _hex_to_rgba(self, hex_color: str, alpha: float = 0.1) -> str:
+        """Convert hex color to rgba format"""
+        # Remove '#' if present
+        hex_color = hex_color.lstrip('#')
+        # Convert hex to RGB values
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return f'rgba({r}, {g}, {b}, {alpha})'
 
     def visualize_timeline(self, changes: List[Dict[str, Any]]):
         """Create an interactive timeline visualization of changes with tooltips"""
@@ -131,105 +163,6 @@ class TimelineVisualizer:
                             change['before'],
                             change['after']
                         )
-
-                st.markdown("---")  # Add separator between changes
-
-    def _get_significance_label(self, score: int) -> str:
-        """Return significance label based on score"""
-        if score >= 8:
-            return "Critical"
-        elif score >= 6:
-            return "High"
-        elif score >= 4:
-            return "Medium"
-        else:
-            return "Low"
-
-    def _show_significance_legend(self):
-        """Display a legend explaining significance colors"""
-        st.markdown("#### 📊 Change Significance Legend")
-        cols = st.columns(4)
-        for i, (level, color) in enumerate(self.significance_colors.items()):
-            with cols[i]:
-                st.markdown(
-                    f'<div style="background-color: {color}; padding: 10px; '
-                    f'border-radius: 5px; color: {"black" if level in ["medium", "low"] else "white"}; '
-                    f'text-align: center;">{level.title()}</div>',
-                    unsafe_allow_html=True
-                )
-
-    def _hex_to_rgba(self, hex_color: str, alpha: float = 0.1) -> str:
-        """Convert hex color to rgba format"""
-        # Remove '#' if present
-        hex_color = hex_color.lstrip('#')
-        # Convert hex to RGB values
-        r = int(hex_color[0:2], 16)
-        g = int(hex_color[2:4], 16)
-        b = int(hex_color[4:6], 16)
-        return f'rgba({r}, {g}, {b}, {alpha})'
-
-    def visualize_timeline(self, changes: List[Dict[str, Any]]):
-        """Create an interactive timeline visualization of changes"""
-        if not changes:
-            st.info("No changes to display in the timeline.")
-            return
-
-        # Display significance legend
-        self._show_significance_legend()
-
-        # Group changes by URL
-        changes_by_url = {}
-        for change in changes:
-            url = change.get('url', 'Unknown')
-            if url not in changes_by_url:
-                changes_by_url[url] = []
-            changes_by_url[url].append(change)
-
-        # Display changes for each URL
-        for url_idx, (url, url_changes) in enumerate(changes_by_url.items()):
-            st.markdown(f"### 🌐 {url}")
-
-            # Sort changes by timestamp in reverse order
-            sorted_changes = sorted(url_changes, key=lambda x: x['timestamp'], reverse=True)
-
-            for change_idx, change in enumerate(sorted_changes):
-                score = change.get('significance_score', 5)
-                color = self._get_significance_color(score)
-                bg_color = self._hex_to_rgba(color)
-
-                # Create the main change card
-                st.markdown(
-                    f'<div style="border-left: 5px solid {color}; padding: 10px; margin: 10px 0; '
-                    f'background-color: {bg_color};">'
-                    f'<h4>{change["type"].replace("_", " ").title()}</h4>'
-                    f'<p><strong>Time:</strong> {change["timestamp"]}</p>'
-                    f'<p><strong>Location:</strong> {change["location"]}</p>'
-                    f'<p><strong>Significance:</strong> {score} ({self._get_significance_label(score)})</p>'
-                    f'</div>',
-                    unsafe_allow_html=True
-                )
-
-                # Show analysis in columns
-                if 'analysis' in change:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("**Impact Analysis**")
-                        st.write(f"- Category: {change['analysis'].get('impact_category', 'Unknown')}")
-                        st.write(f"- Business Relevance: {change['analysis'].get('business_relevance', 'Unknown')}")
-                    with col2:
-                        st.markdown("**Recommendations**")
-                        st.write(f"- {change['analysis'].get('recommendations', 'No recommendations available')}")
-                        st.write(f"- {change['analysis'].get('explanation', 'No explanation available')}")
-
-                # Show content changes
-                if 'before' in change and 'after' in change:
-                    st.markdown("**Content Changes**")
-                    # Create a new DiffVisualizer instance for each change
-                    diff_viz = DiffVisualizer(key_prefix=f"timeline_diff_{url_idx}_{change_idx}")
-                    diff_viz.visualize_diff(
-                        change['before'],
-                        change['after']
-                    )
 
                 st.markdown("---")  # Add separator between changes
 
