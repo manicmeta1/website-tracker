@@ -173,3 +173,38 @@ if websites:
 st.sidebar.header("Monitoring Status")
 for job in scheduler.get_jobs():
     st.sidebar.write(f"Next check for {job.args[0]}: {job.next_run_time}")
+
+
+# Demo section
+st.header("Visualization Demo")
+st.write("Here's an example of how changes are visualized when detected:")
+
+# Sample change for demonstration
+demo_before = """Welcome to our Website
+We offer high-quality products.
+Contact us at contact@example.com
+Visit our store at 123 Main Street."""
+
+demo_after = """Welcome to our Updated Website
+We offer premium high-quality products and services.
+Contact us at support@example.com
+Visit our new store at 456 Market Street.
+Follow us on social media!"""
+
+# Show demo visualization
+with st.expander("Demo Change Visualization", expanded=True):
+    st.write("Sample website content change:")
+
+    # Calculate and display change statistics
+    demo_stats = diff_visualizer.get_diff_stats(demo_before, demo_after)
+    st.write("Change Statistics:")
+    demo_cols = st.columns(3)
+    with demo_cols[0]:
+        st.metric("Words Added", demo_stats['words_added'])
+    with demo_cols[1]:
+        st.metric("Words Removed", demo_stats['words_removed'])
+    with demo_cols[2]:
+        st.metric("Total Changes", demo_stats['total_changes'])
+
+    # Show the actual diff visualization
+    diff_visualizer.visualize_diff(demo_before, demo_after)
