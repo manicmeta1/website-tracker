@@ -1,13 +1,13 @@
 [server]
 headless = true
 address = "0.0.0.0"
-port = 5003
+port = 5000
 enableCORS = false
 enableXsrfProtection = false
 
 [browser]
 serverAddress = "0.0.0.0"
-serverPort = 5003
+serverPort = 5000
 
 [global]
 developmentMode = false
