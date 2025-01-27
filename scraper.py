@@ -24,6 +24,29 @@ class WebScraper:
         self.retry_count = 3
         self.retry_delay = 2
 
+        # Add Shopify-specific selectors
+        self.shopify_selectors = {
+            'navigation': [
+                'nav.navigation', 'header nav', 'footer nav',
+                '.header__menu', '.footer__menu', '.site-nav',
+                '.main-menu', '.navigation__container'
+            ],
+            'collections': [
+                '.collection-grid', '.collection-list',
+                '.collection-matrix', '.collection__products',
+                'collection-listing', '.product-list'
+            ],
+            'products': [
+                '.product-card', '.product-item',
+                '.product-grid', '.product-loop',
+                '.featured-products'
+            ],
+            'content': [
+                'main', '#MainContent', '#shopify-section-main',
+                '.page-content', '.template-page'
+            ]
+        }
+
     def _log(self, message: str):
         """Add a log message with timestamp"""
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -78,20 +101,24 @@ class WebScraper:
                 base_domain = base_domain[4:]
 
             # Shopify-specific exclusions
-            shopify_excluded = any(x in url.lower() for x in [
+            excluded_paths = [
                 '/cart', '/checkout', '/account', '/challenge',
-                'login', 'logout', 'signin', 'signout'
-            ])
+                'login', 'logout', 'signin', 'signout',
+                '/cdn', '/policies', '/tools', 'password'
+            ]
 
             # File extensions to exclude
-            excluded_extensions = ('.pdf', '.jpg', '.jpeg', '.png', '.gif', 
-                                 '.zip', '.css', '.js', '.ico', '.woff', 
-                                 '.woff2', '.svg')
+            excluded_extensions = [
+                '.pdf', '.jpg', '.jpeg', '.png', '.gif', '.zip',
+                '.css', '.js', '.ico', '.woff', '.woff2', '.svg'
+            ]
 
+            # Check if it's a valid internal URL
             is_valid = (
                 (netloc == base_domain or not netloc) and
-                not url.endswith(excluded_extensions) and
-                not shopify_excluded
+                not any(url.endswith(ext) for ext in excluded_extensions) and
+                not any(path in url.lower() for path in excluded_paths) and
+                not url.endswith(base_domain)  # Avoid duplicate root URLs
             )
 
             if is_valid:
@@ -103,43 +130,36 @@ class WebScraper:
             return False
 
     def _extract_links(self, soup: BeautifulSoup, base_url: str, base_domain: str) -> Set[str]:
-        """Extract all valid internal links from the page"""
+        """Extract all valid internal links from the page with improved Shopify support"""
         links = set()
         self._log(f"Extracting links from {base_url}")
 
-        # List of Shopify-specific selectors
-        shopify_selectors = [
-            'nav.navigation',
-            'ul.site-nav',
-            '.site-header',
-            '.site-footer',
-            '.collection-grid',
-            '.product-card',
-            '.footer-nav',
-            '.menu-drawer',
-            '.site-navigation'
-        ]
+        # Process Shopify-specific elements
+        for category, selectors in self.shopify_selectors.items():
+            for selector in selectors:
+                try:
+                    elements = soup.select(selector)
+                    self._log(f"Found {len(elements)} elements for selector {selector}")
 
-        # Find all elements that might contain links
-        for selector in shopify_selectors:
-            elements = soup.select(selector)
-            for element in elements:
-                for a in element.find_all('a', href=True):
-                    href = a.get('href', '').strip()
-                    if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
-                        try:
-                            full_url = urljoin(base_url, href)
-                            normalized_url = self._normalize_url(full_url)
-                            if self._is_valid_internal_link(normalized_url, base_domain):
-                                links.add(normalized_url)
-                                self._log(f"Added Shopify link: {normalized_url}")
-                        except Exception as e:
-                            self._log(f"Error processing Shopify link {href}: {str(e)}")
+                    for element in elements:
+                        for a in element.find_all('a', href=True):
+                            href = a.get('href', '').strip()
+                            if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
+                                try:
+                                    full_url = urljoin(base_url, href)
+                                    normalized_url = self._normalize_url(full_url)
+                                    if self._is_valid_internal_link(normalized_url, base_domain):
+                                        links.add(normalized_url)
+                                        self._log(f"Added {category} link: {normalized_url}")
+                                except Exception as e:
+                                    self._log(f"Error processing {category} link {href}: {str(e)}")
+                except Exception as e:
+                    self._log(f"Error processing selector {selector}: {str(e)}")
 
-        # Standard navigation elements
-        nav_elements = soup.find_all(['nav', 'header', 'footer', 'ul', 'div'])
-        for nav in nav_elements:
-            for a in nav.find_all('a', href=True):
+        # Find links in list items and navigation elements
+        for element in soup.find_all(['li', 'div'], class_=lambda x: x and any(term in str(x).lower() for term in 
+            ['menu-item', 'nav-item', 'collection', 'product'])):
+            for a in element.find_all('a', href=True):
                 href = a.get('href', '').strip()
                 if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
                     try:
@@ -147,9 +167,23 @@ class WebScraper:
                         normalized_url = self._normalize_url(full_url)
                         if self._is_valid_internal_link(normalized_url, base_domain):
                             links.add(normalized_url)
-                            self._log(f"Added standard link: {normalized_url}")
+                            self._log(f"Added menu/list link: {normalized_url}")
                     except Exception as e:
-                        self._log(f"Error processing standard link {href}: {str(e)}")
+                        self._log(f"Error processing menu/list link {href}: {str(e)}")
+
+        # Look for collection and product links that might be missed
+        for a in soup.find_all('a', href=True):
+            href = a.get('href', '').strip()
+            if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
+                try:
+                    if any(term in href.lower() for term in ['/collections/', '/products/', '/pages/']):
+                        full_url = urljoin(base_url, href)
+                        normalized_url = self._normalize_url(full_url)
+                        if self._is_valid_internal_link(normalized_url, base_domain):
+                            links.add(normalized_url)
+                            self._log(f"Added Shopify collection/product link: {normalized_url}")
+                except Exception as e:
+                    self._log(f"Error processing collection/product link {href}: {str(e)}")
 
         self._log(f"Extracted {len(links)} valid internal links")
         for link in links:
