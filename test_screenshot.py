@@ -8,32 +8,45 @@ import io
 # Initialize screenshot manager
 screenshot_manager = ScreenshotManager()
 
-# Main title
-st.title("Screenshot Comparison Demo")
+# Page title with custom styling
+st.markdown("""
+    <h1 style='text-align: center; padding: 20px 0;'>Screenshot Comparison Demo</h1>
+""", unsafe_allow_html=True)
 
-# Simple description
-st.write("""
-This demo shows how the screenshot comparison feature works by comparing two simple images.
-""")
+# Center-align description
+st.markdown("""
+    <div style='text-align: center; padding: 20px;'>
+        This demo shows how the screenshot comparison feature works by comparing two simple images.
+        The button is located directly below this text.
+    </div>
+""", unsafe_allow_html=True)
 
-# Debug message
-st.write("Debug: Main interface loaded")
+# Add visual separation
+st.markdown("<hr>", unsafe_allow_html=True)
 
-# Create a clear separation
-st.markdown("---")
+# Center the button with custom styling
+st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        background-color: #FF4B4B;
+        color: white;
+        font-size: 24px;
+        padding: 20px 40px;
+        display: block;
+        margin: 40px auto;
+        border-radius: 10px;
+        border: none;
+        width: 80%;
+        max-width: 500px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Sample comparison section
-st.header("Sample Comparison")
-st.write("Click the button below to generate and compare two sample images.")
-
-# Debug message
-st.write("Debug: About to render button")
-
-# Simple button for sample comparison
-if st.button("Generate Sample Comparison", key="sample_button"):
-    st.write("Debug: Button clicked")
-
+# Large, centered button
+if st.button("▶️ Run Comparison Demo"):
     try:
+        st.info("Creating sample images for comparison...")
+
         # Create sample images for demonstration
         img1 = Image.new('RGB', (400, 300), 'white')
         draw1 = ImageDraw.Draw(img1)
@@ -47,32 +60,28 @@ if st.button("Generate Sample Comparison", key="sample_button"):
         img1.save("temp_before.png")
         img2.save("temp_after.png")
 
-        st.write("Debug: Images created")
-
         # Compare screenshots
         before_img, after_img, diff_img = screenshot_manager.compare_screenshots(
             "temp_before.png",
             "temp_after.png"
         )
 
-        st.write("Debug: Comparison completed")
-
         # Display results
-        st.write("### Comparison Results")
+        st.markdown("<h2 style='text-align: center; padding: 20px 0;'>Comparison Results</h2>", unsafe_allow_html=True)
 
         # Show images in columns
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.write("**Before:**")
+            st.markdown("<p style='text-align: center'><b>Before:</b></p>", unsafe_allow_html=True)
             st.image(f"data:image/png;base64,{before_img}", use_column_width=True)
 
         with col2:
-            st.write("**After:**")
+            st.markdown("<p style='text-align: center'><b>After:</b></p>", unsafe_allow_html=True)
             st.image(f"data:image/png;base64,{after_img}", use_column_width=True)
 
         with col3:
-            st.write("**Differences:**")
+            st.markdown("<p style='text-align: center'><b>Differences:</b></p>", unsafe_allow_html=True)
             st.image(f"data:image/png;base64,{diff_img}", use_column_width=True)
 
         # Cleanup
@@ -80,15 +89,25 @@ if st.button("Generate Sample Comparison", key="sample_button"):
         os.remove("temp_after.png")
 
     except Exception as e:
-        st.error(f"Error in sample comparison: {str(e)}")
-        st.write(f"Debug: Error occurred - {str(e)}")
+        st.error(f"Error in comparison: {str(e)}")
+else:
+    # Show instruction when button is not clicked
+    st.markdown("""
+        <div style='text-align: center; color: #666; padding: 20px;'>
+            👆 Click the red button above to see the screenshot comparison demo in action!
+        </div>
+    """, unsafe_allow_html=True)
 
-# Add an explanation
-st.markdown("---")
-st.write("""
-### How it works:
-1. Two sample images are generated with different text
-2. The images are compared pixel by pixel
-3. Differences are highlighted in red
-4. Results show the before, after, and difference views
-""")
+# Add explanation at the bottom
+st.markdown("<hr>", unsafe_allow_html=True)
+st.markdown("""
+    <div style='text-align: center; padding: 20px;'>
+        <h3>How it works:</h3>
+        <ol style='display: inline-block; text-align: left;'>
+            <li>Two sample images are generated with different text</li>
+            <li>The images are compared pixel by pixel</li>
+            <li>Differences are highlighted in red</li>
+            <li>Results show before, after, and difference views</li>
+        </ol>
+    </div>
+""", unsafe_allow_html=True)
