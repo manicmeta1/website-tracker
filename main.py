@@ -205,7 +205,7 @@ with tab2:
                     }
                     data_manager.store_website_config(website_config)
 
-                    # Add to scheduler
+                    # Add to scheduler with normalized job ID
                     freq_map = {
                         "1 hour": 3600,
                         "6 hours": 21600,
@@ -213,11 +213,12 @@ with tab2:
                         "24 hours": 86400
                     }
 
+                    job_id = f"check_{_normalize_job_id(new_url)}"
                     scheduler.add_job(
                         check_website,
                         'interval',
                         seconds=freq_map[check_frequency],
-                        id=f'check_{new_url}',
+                        id=job_id,
                         args=[new_url, crawl_all_pages]
                     )
                     st.success(f"Added {new_url} to monitoring")
@@ -239,9 +240,20 @@ with tab2:
             st.write(website['url'])
         with col2:
             if st.button("Remove", key=f"remove_{website['url']}"):
-                scheduler.remove_job(f"check_{website['url']}")
-                data_manager.delete_website_config(website['url'])
-                st.rerun()
+                try:
+                    # Remove scheduler job with normalized ID
+                    job_id = f"check_{_normalize_job_id(website['url'])}"
+                    try:
+                        scheduler.remove_job(job_id)
+                    except Exception as e:
+                        st.warning(f"Note: Scheduler job was already removed or not found")
+
+                    # Remove website config
+                    data_manager.delete_website_config(website['url'])
+                    st.success(f"Successfully removed {website['url']}")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error removing website: {str(e)}")
 
 with tab3:
     # Display changes with timeline
@@ -397,6 +409,10 @@ with tab4:
             st.write("After:")
             st.code(change['after'])
 
+
+def _normalize_job_id(url: str) -> str:
+    """Normalize URL for job ID to ensure consistency"""
+    return url.replace('https://', '').replace('http://', '').strip('/')
 
 def check_website(url: str, crawl_all_pages: bool = False):
     """Perform website check and detect changes"""
