@@ -121,7 +121,7 @@ class WebScraper:
             combined_content = {
                 'url': url,
                 'timestamp': all_content[0]['timestamp'],
-                'pages': all_content,
+                'pages': all_content,  # Make sure pages data is included
                 'crawl_all_pages': crawl_all_pages
             }
 

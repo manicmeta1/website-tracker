@@ -127,7 +127,7 @@ with tab1:
                         <h4>Monitoring Details</h4>
                         <p><strong>Check Frequency:</strong> {website['frequency']}</p>
                         <p><strong>Added:</strong> {website['added_at']}</p>
-                        <p><strong>Full Site Crawling:</strong> {'Enabled' if website.get('crawl_all_pages', False) else 'Disabled'}</p>
+                        <p><strong>Full Site Crawling:</strong> {'✅ Enabled' if website.get('crawl_all_pages', False) else '❌ Disabled'}</p>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -147,16 +147,23 @@ with tab1:
                                         monitored_pages.add((page['url'], page.get('location', 'Unknown')))
 
                             if monitored_pages:
-                                with st.expander("📑 Monitored Pages", expanded=False):
+                                with st.expander("📑 Monitored Pages", expanded=True):
+                                    st.markdown("### Discovered Pages")
+                                    st.markdown("The following pages are being monitored:")
                                     for page_url, location in sorted(monitored_pages):
                                         st.markdown(f"""
-                                        <div style='border-left: 2px solid #e6e6e6; padding-left: 10px; margin: 5px 0;'>
-                                            <p><strong>{location}</strong><br>
-                                            <small>{page_url}</small></p>
+                                        <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
+                                            <p style='margin: 0;'><strong>{location}</strong></p>
+                                            <p style='margin: 0; color: #666;'><small>{page_url}</small></p>
                                         </div>
                                         """, unsafe_allow_html=True)
                             else:
-                                st.info("Waiting for the first crawl to discover pages...")
+                                st.warning("Full site crawling is enabled but no pages have been discovered yet. Pages will appear here after the next crawl.")
+
+                    # Debug information
+                    if st.checkbox("Show Debug Info", key=f"debug_{website['url']}"):
+                        st.write("Recent Changes Data:", recent_changes)
+                        st.write("Pages Found:", monitored_pages if 'monitored_pages' in locals() else "No pages data")
 
                     # Recent Changes
                     website_changes = [c for c in all_changes if c['url'] == website['url']]

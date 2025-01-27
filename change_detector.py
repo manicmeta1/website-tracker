@@ -29,6 +29,9 @@ class ChangeDetector:
             current_content['timestamp']
         )
         if text_changes:
+            # Include pages information in each change
+            for change in text_changes:
+                change['pages'] = current_content.get('pages', [])
             changes.extend(text_changes)
 
         # Compare links
@@ -38,6 +41,9 @@ class ChangeDetector:
             current_content['timestamp']
         )
         if link_changes:
+            # Include pages information in each change
+            for change in link_changes:
+                change['pages'] = current_content.get('pages', [])
             changes.extend(link_changes)
 
         # Compare styles
@@ -47,6 +53,9 @@ class ChangeDetector:
             current_content['timestamp']
         )
         if style_changes:
+            # Include pages information in each change
+            for change in style_changes:
+                change['pages'] = current_content.get('pages', [])
             changes.extend(style_changes)
 
         # Compare menu structure
@@ -56,6 +65,9 @@ class ChangeDetector:
             current_content['timestamp']
         )
         if menu_changes:
+            # Include pages information in each change
+            for change in menu_changes:
+                change['pages'] = current_content.get('pages', [])
             changes.extend(menu_changes)
 
         # Compare screenshots
@@ -65,14 +77,16 @@ class ChangeDetector:
                     self.previous_content['screenshot_path'],
                     current_content['screenshot_path']
                 )
-                changes.append({
+                visual_change = {
                     'type': 'visual_change',
                     'location': 'Website Screenshot',
                     'before_image': before_img,
                     'after_image': after_img,
                     'diff_image': diff_img,
-                    'timestamp': current_content['timestamp']
-                })
+                    'timestamp': current_content['timestamp'],
+                    'pages': current_content.get('pages', [])  # Include pages information
+                }
+                changes.append(visual_change)
             except Exception as e:
                 print(f"Warning: Failed to compare screenshots: {str(e)}")
 
