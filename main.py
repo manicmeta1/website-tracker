@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta # timedelta imported here
 import time
 from scraper import WebScraper
 from change_detector import ChangeDetector
@@ -167,6 +167,42 @@ with tab3:
         <p>Follow us on social media!</p>
     </div>
     """
+
+    # Generate demo timeline data
+    if st.button("Generate Demo Timeline Data"):
+        # Create sample changes across different dates
+        demo_changes = [
+            {
+                'type': 'text_change',
+                'location': 'Homepage',
+                'before': 'Welcome to our store',
+                'after': 'Welcome to our updated store',
+                'url': 'https://demo-store.com',
+                'timestamp': (datetime.now() - timedelta(days=2)).isoformat()
+            },
+            {
+                'type': 'menu_structure_change',
+                'location': 'Navigation Menu',
+                'before': '- Home\n- Products\n- Contact',
+                'after': '- Home\n- Products\n- About Us\n- Contact',
+                'url': 'https://demo-store.com',
+                'timestamp': (datetime.now() - timedelta(days=1)).isoformat()
+            },
+            {
+                'type': 'text_change',
+                'location': 'Product Page',
+                'before': 'Original product description',
+                'after': 'Updated product description with new features',
+                'url': 'https://demo-store.com/products',
+                'timestamp': datetime.now().isoformat()
+            }
+        ]
+
+        # Store the demo changes
+        for change in demo_changes:
+            data_manager.store_changes([change], change['url'])
+
+        st.success("Demo timeline data generated! Check the 'Change Timeline' tab to view it.")
 
     # Show demo visualization
     with st.expander("Demo Change Visualization", expanded=True):
