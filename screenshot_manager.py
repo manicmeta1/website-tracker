@@ -1,22 +1,42 @@
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from PIL import Image, ImageDraw
-import os
-from datetime import datetime
 import io
+from datetime import datetime, timedelta
 import base64
 
 class ScreenshotManager:
     def __init__(self):
         self.screenshot_dir = "screenshots"
         self._ensure_screenshot_dir()
+        self._cleanup_old_screenshots()
 
     def _ensure_screenshot_dir(self):
         """Create screenshots directory if it doesn't exist"""
         if not os.path.exists(self.screenshot_dir):
             os.makedirs(self.screenshot_dir)
+        # Ensure .gitkeep exists
+        gitkeep_path = os.path.join(self.screenshot_dir, ".gitkeep")
+        if not os.path.exists(gitkeep_path):
+            with open(gitkeep_path, "w") as f:
+                f.write("")
+
+    def _cleanup_old_screenshots(self, max_age_hours=24):
+        """Remove screenshots older than max_age_hours"""
+        now = datetime.now()
+        for filename in os.listdir(self.screenshot_dir):
+            if filename == '.gitkeep':
+                continue
+            filepath = os.path.join(self.screenshot_dir, filename)
+            file_modified = datetime.fromtimestamp(os.path.getmtime(filepath))
+            if now - file_modified > timedelta(hours=max_age_hours):
+                try:
+                    os.remove(filepath)
+                except OSError as e:
+                    print(f"Error removing old screenshot {filepath}: {e}")
 
     def capture_screenshot(self, url: str) -> str:
         """Capture website screenshot using Selenium"""
@@ -43,7 +63,10 @@ class ScreenshotManager:
 
             # Save screenshot with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{self.screenshot_dir}/{url.replace('://', '_').replace('/', '_')}_{timestamp}.png"
+            filename = os.path.join(
+                self.screenshot_dir,
+                f"{url.replace('://', '_').replace('/', '_')}_{timestamp}.png"
+            )
 
             with open(filename, "wb") as f:
                 f.write(screenshot)
