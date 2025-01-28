@@ -367,6 +367,60 @@ with tab2:
                 except Exception as e:
                     st.error(f"Error removing website: {str(e)}")
 
+def generate_timeline_demo_changes():
+    """Generate demo changes for timeline visualization"""
+    demo_changes = [
+        {
+            'type': 'text_change',
+            'location': 'Homepage',
+            'before': 'Welcome to Edica Naturals - Your Source for Natural Menopause Relief',
+            'after': 'Welcome to Edica Naturals - Advanced Natural Solutions for Menopause Relief',
+            'url': 'edicanaturals.com',
+            'timestamp': datetime.now().isoformat(),
+            'significance_score': 6,
+            'analysis': {
+                'explanation': 'Homepage messaging updated to emphasize product sophistication',
+                'impact_category': 'Marketing',
+                'business_relevance': 'Medium',
+                'recommendations': 'Update social media profiles with new messaging'
+            },
+            'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
+        },
+        {
+            'type': 'menu_structure_change',
+            'location': 'Navigation Menu',
+            'before': '- Home\n- Products\n- About\n- Contact',
+            'after': '- Home\n- Products\n- Research\n- About\n- Contact',
+            'url': 'edicanaturals.com',
+            'timestamp': datetime.now().isoformat(),
+            'significance_score': 8,
+            'analysis': {
+                'explanation': 'Added new Research section to main navigation',
+                'impact_category': 'Structure',
+                'business_relevance': 'High',
+                'recommendations': 'Ensure new research section has proper content and tracking'
+            },
+            'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
+        },
+        {
+            'type': 'text_change',
+            'location': 'Product Page',
+            'before': 'Natural Menopause Relief Supplement - $49.99',
+            'after': 'Natural Menopause Relief Supplement - Limited Time Offer: $39.99',
+            'url': 'edicanaturals.com/products',
+            'timestamp': datetime.now().isoformat(),
+            'significance_score': 9,
+            'analysis': {
+                'explanation': 'Price reduction and promotion added',
+                'impact_category': 'Pricing',
+                'business_relevance': 'Critical',
+                'recommendations': 'Monitor sales velocity and update marketing campaigns'
+            },
+            'pages': [{'url': 'edicanaturals.com/products', 'location': '/products'}]
+        }
+    ]
+    return demo_changes
+
 with tab3:
     st.header("Website Changes Timeline")
 
@@ -375,6 +429,14 @@ with tab3:
     website_urls = ["All Websites"] + [w['url'] for w in websites]
     selected_website = st.selectbox("Select Website", website_urls)
 
+    # Add demo data generation button
+    if st.button("Generate Timeline Demo Data"):
+        demo_changes = generate_timeline_demo_changes()
+        data_manager.store_changes(demo_changes, 'edicanaturals.com')
+        st.success("Demo changes generated! Refresh to see the timeline.")
+        time.sleep(2)
+        st.rerun()
+
     # Get changes, filtered by selected website if needed
     if selected_website == "All Websites":
         changes = data_manager.get_recent_changes()
@@ -382,224 +444,118 @@ with tab3:
         changes = data_manager.get_recent_changes(url=selected_website)
 
     if not changes:
-        st.info("No changes detected yet. Changes will appear here once detected.")
+        st.info("No changes detected yet. Click 'Generate Timeline Demo Data' to see example changes.")
     else:
-        # Group changes by date, scan time, and page
-        changes_by_date_time_page = {}
+        # Group changes by website and page
+        grouped_changes = {}
         for change in changes:
-            date = datetime.fromisoformat(change['timestamp']).date()
-            timestamp = datetime.fromisoformat(change['timestamp'])
-            scan_time = timestamp.strftime('%H:%M:%S')
+            website = change['url']
+            if website not in grouped_changes:
+                grouped_changes[website] = {}
 
-            if date not in changes_by_date_time_page:
-                changes_by_date_time_page[date] = {}
-            if scan_time not in changes_by_date_time_page[date]:
-                changes_by_date_time_page[date][scan_time] = {}
+            # Get page location from the first page in pages array
+            page_location = '/'
+            if 'pages' in change and change['pages']:
+                page = change['pages'][0]
+                if isinstance(page, dict):
+                    page_location = page.get('location', '/')
 
-            # Get pages from the change
-            if 'pages' in change:
-                for page in change.get('pages', []):
-                    if isinstance(page, dict):
-                        page_url = page.get('url', 'Unknown')
-                        page_location = page.get('location', '/')
+            if page_location not in grouped_changes[website]:
+                grouped_changes[website][page_location] = []
 
-                        # Create key for the page
-                        page_key = f"{page_location} ({page_url})"
+            grouped_changes[website][page_location].append(change)
 
-                        if page_key not in changes_by_date_time_page[date][scan_time]:
-                            changes_by_date_time_page[date][scan_time][page_key] = []
+        # Display changes grouped by website and page
+        for website, pages in grouped_changes.items():
+            st.markdown(f"## 🌐 {website}")
 
-                        # Add change to the page
-                        changes_by_date_time_page[date][scan_time][page_key].append(change)
-            else:
-                # Handle changes without specific page information
-                page_key = "General Changes"
-                if page_key not in changes_by_date_time_page[date][scan_time]:
-                    changes_by_date_time_page[date][scan_time][page_key] = []
-                changes_by_date_time_page[date][scan_time][page_key].append(change)
-
-        # Display changes grouped by date
-        for date in sorted(changes_by_date_time_page.keys(), reverse=True):
-            with st.expander(f"📅 {date}", expanded=True):
-                # For each scan time on this date
-                for scan_time in sorted(changes_by_date_time_page[date].keys(), reverse=True):
-                    st.markdown(f"### 🕒 Scan at {scan_time}")
-
+            for page_location, page_changes in pages.items():
+                with st.expander(f"📄 {page_location}", expanded=True):
                     # Display changes first
-                    for page_key, page_changes in changes_by_date_time_page[date][scan_time].items():
-                        for change in page_changes:
-                            # Skip site_check type changes as they don't represent actual changes
-                            if change['type'] == 'site_check':
-                                continue
+                    st.markdown("### Recent Changes:")
+                    for change in page_changes:
+                        if change['type'] == 'site_check':
+                            continue
 
-                            with st.container():
-                                st.markdown("---")  # Visual separator between changes
+                        with st.container():
+                            # Change header with type and significance
+                            change_type = change['type'].replace('_', ' ').title()
+                            st.markdown(f"""
+                                <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;'>
+                                    <h4 style='margin: 0;'>{change_type}</h4>
+                                    <p style='margin: 0.5rem 0 0 0; color: #666;'>
+                                        <strong>Location:</strong> {change['location']}
+                                    </p>
+                                </div>
+                            """, unsafe_allow_html=True)
 
-                                # Create header with page info and change type
-                                change_type = change['type'].replace('_', ' ').title()
+                            # Show significance score if available
+                            if 'significance_score' in change:
+                                score = change['significance_score']
+                                color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
                                 st.markdown(f"""
-                                    <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;'>
-                                        <h4 style='margin: 0;'>📄 {page_key}</h4>
-                                        <p style='margin: 0.5rem 0 0 0; color: #666;'><strong>Change Type:</strong> {change_type}</p>
+                                    <div style='text-align: right;'>
+                                        <span style='color: {color}; font-size: 1.2em;'>
+                                            Significance: {score}/10
+                                        </span>
                                     </div>
                                 """, unsafe_allow_html=True)
 
-                                # Show significance score if available
-                                if 'significance_score' in change:
-                                    score = change['significance_score']
-                                    color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
-                                    st.markdown(f"""
-                                        <div style='text-align: right; margin-bottom: 1rem;'>
-                                            <span style='color: {color}; font-size: 1.2em; padding: 0.5rem 1rem; background-color: #f8f9fa; border-radius: 0.5rem;'>
-                                                Significance: {score}/10
-                                            </span>
-                                        </div>
-                                    """, unsafe_allow_html=True)
+                            # Show change details based on type
+                            if change['type'] in ['text_change', 'menu_structure_change']:
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.markdown("**Before:**")
+                                    st.text_area("", value=change.get('before', ''), 
+                                               height=100, key=f"before_{change['timestamp']}", 
+                                               disabled=True)
+                                with col2:
+                                    st.markdown("**After:**")
+                                    st.text_area("", value=change.get('after', ''), 
+                                               height=100, key=f"after_{change['timestamp']}", 
+                                               disabled=True)
 
-                                # Show change details based on type
-                                if change['type'] in ['text_change', 'menu_structure_change']:
-                                    col1, col2 = st.columns(2)
-                                    with col1:
-                                        st.markdown("**Before:**")
-                                        st.text_area("", value=change.get('before', ''), height=150,
-                                                     key=f"before_{change['timestamp']}_{page_key}", disabled=True)
-                                    with col2:
-                                        st.markdown("**After:**")
-                                        st.text_area("", value=change.get('after', ''), height=150,
-                                                     key=f"after_{change['timestamp']}_{page_key}", disabled=True)
+                            elif change['type'] in ['links_added', 'links_removed']:
+                                st.markdown("**Changed Links:**")
+                                st.text_area("", value=change.get('after', '') or change.get('before', ''),
+                                           height=100, key=f"links_{change['timestamp']}", disabled=True)
 
-                                elif change['type'] in ['links_added', 'links_removed']:
-                                    st.markdown("**Changed Links:**")
-                                    st.text_area("", value=change.get('after', '') or change.get('before', ''),
-                                                 height=100, key=f"links_{change['timestamp']}_{page_key}", disabled=True)
-
-                                elif change['type'] == 'visual_change' and 'diff_image' in change:
-                                    st.markdown("**Visual Changes:**")
-                                    st.image(change['diff_image'], caption="Visual differences highlighted",
-                                             use_column_width=True)
-
-                                # Show AI analysis if available
-                                if 'analysis' in change:
-                                    st.markdown("##### 🤖 AI Analysis")
+                            # Show AI analysis if available
+                            if 'analysis' in change:
+                                with st.expander("🤖 View AI Analysis", expanded=False):
                                     analysis = change['analysis']
                                     st.markdown(f"""
-                                        <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 1rem 0;'>
-                                            <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
-                                            <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
-                                            <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
-                                            <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
-                                        </div>
-                                    """, unsafe_allow_html=True)
+                                        - **Impact:** {analysis.get('explanation', 'N/A')}
+                                        - **Category:** {analysis.get('impact_category', 'N/A')}
+                                        - **Business Relevance:** {analysis.get('business_relevance', 'N/A')}
+                                        - **Recommendations:** {analysis.get('recommendations', 'N/A')}
+                                    """)
 
-                    # After showing changes, show monitored pages
-                    st.markdown("### 📑 Monitored Pages")
-                    monitored_pages = set()
-                    for page_key, page_changes in changes_by_date_time_page[date][scan_time].items():
-                        if " (" in page_key:
-                            location, url = page_key.split(" (", 1)
-                            url = url.rstrip(")")
-                            monitored_pages.add((location, url))
+                            st.markdown("---")  # Separator between changes
 
-                    if monitored_pages:
-                        for location, url in sorted(monitored_pages):
-                            st.markdown(f"""
-                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
-                                    <p style='margin: 0;'><strong>{location}</strong></p>
-                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
-                                </div>
-                            """, unsafe_allow_html=True)
-                    else:
-                        st.info("No pages were monitored in this scan.")
+                    # Collapsible monitored pages section
+                    with st.expander("📋 View Monitored Pages", expanded=False):
+                        st.markdown("### Monitored Pages")
+                        monitored_pages = set()
+                        for change in page_changes:
+                            if 'pages' in change:
+                                for page in change.get('pages', []):
+                                    if isinstance(page, dict):
+                                        url = page.get('url', 'Unknown')
+                                        location = page.get('location', 'Unknown')
+                                        monitored_pages.add((location, url))
 
-                    st.markdown("---")  # Add separator between scan times
+                        if monitored_pages:
+                            for location, url in sorted(monitored_pages):
+                                st.markdown(f"""
+                                    <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
+                                        <p style='margin: 0;'><strong>{location}</strong></p>
+                                        <p style='margin: 0; color: #666;'><small>{url}</small></p>
+                                    </div>
+                                """, unsafe_allow_html=True)
+                        else:
+                            st.info("No pages are currently being monitored.")
 
-        # Manual check button
-        if websites:
-            if st.button("Check All Now"):
-                st.write("Starting website checks...")
-                for website in websites:
-                    check_website(website['url'], website.get('crawl_all_pages', False))
-                st.success("All checks completed!")
-
-            # Add a demo generator button just after the manual check
-            if st.button("Generate Demo Changes for Edicanaturals"):
-                st.write("Generating demo changes...")
-                demo_changes = [
-                    {
-                        'type': 'text_change',
-                        'location': 'Homepage',
-                        'before': 'Experience the Power of Nature with Edica Naturals',
-                        'after': 'Experience the Power of Nature with Edica Naturals - Now with Enhanced Formulas',
-                        'url': 'edicanaturals.com',
-                        'timestamp': datetime.now().isoformat(),
-                        'significance_score': 4,
-                        'analysis': {
-                            'explanation': 'Minor update to homepage tagline',
-                            'impact_category': 'Marketing',
-                            'business_relevance': 'Low',
-                            'recommendations': 'Update social media profiles with new tagline if needed'
-                        },
-                        'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
-                    },
-                    {
-                        'type': 'menu_structure_change',
-                        'location': 'Navigation Menu',
-                        'before': '- Home\n- Products\n- About\n- Blog\n- Contact',
-                        'after': '- Home\n- Products\n- About\n- Blog\n- Wellness Guide\n- Contact',
-                        'url': 'edicanaturals.com',
-                        'timestamp': datetime.now().isoformat(),
-                        'significance_score': 7,
-                        'analysis': {
-                            'explanation': 'Added new Wellness Guide section to main navigation',
-                            'impact_category': 'Structure',
-                            'business_relevance': 'High',
-                            'recommendations': 'Monitor user engagement with new section'
-                        },
-                        'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
-                    },
-                    {
-                        'type': 'text_change',
-                        'location': 'Products Page',
-                        'before': 'Our premium menopause relief supplements',
-                        'after': 'Our clinically tested premium menopause relief supplements',
-                        'url': 'edicanaturals.com/products',
-                        'timestamp': datetime.now().isoformat(),
-                        'significance_score': 8,
-                        'analysis': {
-                            'explanation': 'Added clinical testing claim to product description',
-                            'impact_category': 'Product Marketing',
-                            'business_relevance': 'High',
-                            'recommendations': 'Update product marketing materials and ensure clinical test documentation is accessible'
-                        },
-                        'pages': [{'url': 'edicanaturals.com/products', 'location': '/products'}]
-                    },
-                    {
-                        'type': 'links_added',
-                        'location': 'Blog',
-                        'before': '',
-                        'after': 'https://edicanaturals.com/blogs/new-research-on-menopause-relief\nhttps://edicanaturals.com/blogs/natural-supplements-guide',
-                        'url': 'edicanaturals.com/blogs',
-                        'timestamp': datetime.now().isoformat(),
-                        'significance_score': 6,
-                        'analysis': {
-                            'explanation': 'Added new blog articles about menopause relief research',
-                            'impact_category': 'Content',
-                            'business_relevance': 'Medium',
-                            'recommendations': 'Promote new articles on social media channels'
-                        },
-                        'pages': [{'url': 'edicanaturals.com/blogs', 'location': '/blogs'}]
-                    }
-                ]
-
-
-                # Store the demo changes
-                data_manager.store_changes(demo_changes, 'edicanaturals.com')
-                st.success("Demo changes generated! Check the Timeline tab to view them.")
-
-            # Show monitoring status
-            st.subheader("Monitoring Status")
-            for job in scheduler.get_jobs():
-                st.write(f"Next check for {job.args[0]}: {job.next_run_time}")
 
 with tab4:
     # Demo section
