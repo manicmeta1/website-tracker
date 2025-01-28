@@ -368,15 +368,83 @@ with tab2:
                     st.error(f"Error removing website: {str(e)}")
 
 with tab3:
-    # Display changes with timeline
     st.header("Website Changes Timeline")
     changes = data_manager.get_recent_changes()
 
     if not changes:
         st.info("No changes detected yet. Changes will appear here once detected.")
     else:
-        # Display interactive timeline
-        timeline_visualizer.visualize_timeline(changes)
+        # Group changes by date
+        changes_by_date = {}
+        for change in changes:
+            date = datetime.fromisoformat(change['timestamp']).date()
+            if date not in changes_by_date:
+                changes_by_date[date] = []
+            changes_by_date[date].append(change)
+
+        # Display changes grouped by date
+        for date in sorted(changes_by_date.keys(), reverse=True):
+            with st.expander(f"📅 {date}", expanded=True):
+                for change in changes_by_date[date]:
+                    # Create a card-like container for each change
+                    with st.container():
+                        # Header with timestamp and type
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            change_time = datetime.fromisoformat(change['timestamp']).strftime('%H:%M:%S')
+                            change_type = change['type'].replace('_', ' ').title()
+                            st.markdown(f"### 🕒 {change_time} - {change_type}")
+                            st.markdown(f"**URL:** {change['url']}")
+                            if 'location' in change:
+                                st.markdown(f"**Location:** {change['location']}")
+
+                        with col2:
+                            # Show significance score if available
+                            if 'significance_score' in change:
+                                score = change['significance_score']
+                                color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
+                                st.markdown(f"""
+                                    <div style='text-align: right;'>
+                                        <span style='color: {color}; font-size: 1.2em;'>
+                                            Significance: {score}/10
+                                        </span>
+                                    </div>
+                                """, unsafe_allow_html=True)
+
+                        # Show change details based on type
+                        if change['type'] in ['text_change', 'menu_structure_change']:
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.markdown("**Before:**")
+                                st.text_area("", value=change.get('before', ''), height=150, 
+                                           key=f"before_{change['timestamp']}", disabled=True)
+                            with col2:
+                                st.markdown("**After:**")
+                                st.text_area("", value=change.get('after', ''), height=150, 
+                                           key=f"after_{change['timestamp']}", disabled=True)
+
+                        elif change['type'] in ['links_added', 'links_removed']:
+                            st.markdown("**Changed Links:**")
+                            st.text_area("", value=change.get('after', '') or change.get('before', ''), 
+                                       height=100, key=f"links_{change['timestamp']}", disabled=True)
+
+                        elif change['type'] == 'visual_change' and 'diff_image' in change:
+                            st.markdown("**Visual Changes:**")
+                            st.image(change['diff_image'], caption="Visual differences highlighted", 
+                                   use_column_width=True)
+
+                        # Show AI analysis if available
+                        if 'analysis' in change:
+                            with st.expander("🤖 AI Analysis", expanded=False):
+                                analysis = change['analysis']
+                                st.markdown(f"""
+                                    - **Impact:** {analysis.get('explanation', 'N/A')}
+                                    - **Category:** {analysis.get('impact_category', 'N/A')}
+                                    - **Business Relevance:** {analysis.get('business_relevance', 'N/A')}
+                                    - **Recommendations:** {analysis.get('recommendations', 'N/A')}
+                                """)
+
+                        st.divider()  # Add visual separator between changes
 
     # Manual check button
     if websites:
