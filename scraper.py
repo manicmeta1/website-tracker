@@ -271,18 +271,18 @@ class WebScraper:
                 while urls_to_visit and len(self.visited_urls) < 100:
                     next_url = urls_to_visit.pop()
                     if next_url not in self.visited_urls:
-                        elapsed_time = time.time() - self.start_time
-                        avg_time_per_page = elapsed_time / self.processed_pages if self.processed_pages > 0 else 0
-                        remaining_pages = self.total_discovered_pages - self.processed_pages
-                        estimated_time = avg_time_per_page * remaining_pages
-
-                        self._log(f"Progress: {self.processed_pages}/{self.total_discovered_pages} pages")
-                        self._log(f"Estimated time remaining: {int(estimated_time)} seconds")
-                        self._log(f"Crawling: {next_url}")
-
-                        time.sleep(random.uniform(1, 2))  # Polite delay
-
                         try:
+                            elapsed_time = time.time() - self.start_time
+                            avg_time_per_page = elapsed_time / self.processed_pages if self.processed_pages > 0 else 0
+                            remaining_pages = self.total_discovered_pages - self.processed_pages
+                            estimated_time = avg_time_per_page * remaining_pages
+
+                            self._log(f"Progress: {self.processed_pages}/{self.total_discovered_pages} pages")
+                            self._log(f"Estimated time remaining: {int(estimated_time)} seconds")
+                            self._log(f"Crawling: {next_url}")
+
+                            time.sleep(random.uniform(1, 2))  # Polite delay
+
                             response = self.session.get(next_url, headers=self.headers, timeout=30)
                             response.raise_for_status()
                             html_content = response.text
@@ -338,28 +338,28 @@ class WebScraper:
                             self._log(f"Error crawling {next_url}: {str(e)}")
                             continue
 
-        self._log(f"Crawl completed. Total pages found: {len(pages_data)}")
+            self._log(f"Crawl completed. Total pages found: {len(pages_data)}")
 
-        return {
-            'url': url,
-            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'text_content': pages_data[0]['content']['text_content'],
-            'links': list(links),
-            'content_hash': pages_data[0]['content']['content_hash'],
-            'screenshot_path': pages_data[0]['content']['screenshot_path'],
-            'pages': pages_data,
-            'crawler_logs': self._logs,
-            'progress': {
-                'total_pages': self.total_discovered_pages,
-                'processed_pages': self.processed_pages,
-                'elapsed_time': time.time() - self.start_time
+            return {
+                'url': url,
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'text_content': pages_data[0]['content']['text_content'],
+                'links': list(links),
+                'content_hash': pages_data[0]['content']['content_hash'],
+                'screenshot_path': pages_data[0]['content']['screenshot_path'],
+                'pages': pages_data,
+                'crawler_logs': self._logs,
+                'progress': {
+                    'total_pages': self.total_discovered_pages,
+                    'processed_pages': self.processed_pages,
+                    'elapsed_time': time.time() - self.start_time
+                }
             }
-        }
 
-    except Exception as e:
-        error_msg = f"Failed to scrape website: {str(e)}"
-        self._log(error_msg)
-        raise Exception(error_msg)
+        except Exception as e:
+            error_msg = f"Failed to scrape website: {str(e)}"
+            self._log(error_msg)
+            raise Exception(error_msg)
 
     def get_logs(self):
         return self._logs
