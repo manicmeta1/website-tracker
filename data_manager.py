@@ -109,6 +109,8 @@ class DataManager:
             else:
                 print(f"Retrieved {len(changes)} total changes")
 
+            # Sort changes by timestamp in descending order
+            changes.sort(key=lambda x: x['timestamp'], reverse=True)
             return changes[-100:]  # Return last 100 changes
 
         except Exception as e:
