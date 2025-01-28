@@ -424,18 +424,19 @@ def generate_timeline_demo_changes():
 with tab3:
     st.header("Website Changes Timeline")
 
+    # Make demo data generation more prominent
+    st.info("👉 Click the button below to see example changes with visual formatting")
+    if st.button("🎯 Load Example Timeline Data", key="demo_timeline"):
+        demo_changes = generate_timeline_demo_changes()
+        data_manager.store_changes(demo_changes, 'edicanaturals.com')
+        st.success("✅ Demo data loaded! You should now see the changes below.")
+        time.sleep(1)
+        st.rerun()
+
     # Add website filter dropdown
     websites = data_manager.get_website_configs()
     website_urls = ["All Websites"] + [w['url'] for w in websites]
     selected_website = st.selectbox("Select Website", website_urls)
-
-    # Add demo data generation button
-    if st.button("Generate Timeline Demo Data"):
-        demo_changes = generate_timeline_demo_changes()
-        data_manager.store_changes(demo_changes, 'edicanaturals.com')
-        st.success("Demo changes generated! Refresh to see the timeline.")
-        time.sleep(2)
-        st.rerun()
 
     # Get changes, filtered by selected website if needed
     if selected_website == "All Websites":
@@ -444,7 +445,7 @@ with tab3:
         changes = data_manager.get_recent_changes(url=selected_website)
 
     if not changes:
-        st.info("No changes detected yet. Click 'Generate Timeline Demo Data' to see example changes.")
+        st.warning("No changes detected yet. Click '🎯 Load Example Timeline Data' above to see example changes.")
     else:
         # Group changes by website and page
         grouped_changes = {}
@@ -467,20 +468,30 @@ with tab3:
 
         # Display changes grouped by website and page
         for website, pages in grouped_changes.items():
-            st.markdown(f"## 🌐 {website}")
+            st.markdown(f"""
+                <div style='padding: 1rem; border-radius: 0.5rem; background-color: #f0f2f6; margin-bottom: 1rem;'>
+                    <h2 style='margin: 0;'>🌐 {website}</h2>
+                </div>
+            """, unsafe_allow_html=True)
 
             for page_location, page_changes in pages.items():
-                with st.expander(f"📄 {page_location}", expanded=True):
-                    # Display changes first
-                    st.markdown("### Recent Changes:")
-                    for change in page_changes:
-                        if change['type'] == 'site_check':
-                            continue
+                st.markdown(f"""
+                    <div style='padding: 0.5rem; border-left: 4px solid #1f77b4; margin: 1rem 0;'>
+                        <h3>📄 {page_location}</h3>
+                    </div>
+                """, unsafe_allow_html=True)
 
-                        # Create a card-like container for each change
+                # Display changes
+                for change in page_changes:
+                    if change['type'] == 'site_check':
+                        continue
+
+                    # Create a card-like container for each change
+                    with st.container():
                         st.markdown(f"""
-                            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;'>
-                                <h4 style='margin: 0;'>{change['type'].replace('_', ' ').title()}</h4>
+                            <div style='background-color: #ffffff; padding: 1rem; border-radius: 0.5rem; 
+                                    margin-bottom: 1rem; border: 1px solid #dee2e6;'>
+                                <h4 style='margin: 0; color: #1f77b4;'>{change['type'].replace('_', ' ').title()}</h4>
                                 <p style='margin: 0.5rem 0 0 0; color: #666;'>
                                     <strong>Location:</strong> {change['location']}
                                 </p>
@@ -492,39 +503,50 @@ with tab3:
                             score = change['significance_score']
                             color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
                             st.markdown(f"""
-                                <div style='margin-bottom: 1rem;'>
-                                    <div style='background-color: #f0f2f6; padding: 0.5rem; border-radius: 0.25rem; display: inline-block;'>
-                                        <span style='color: {color}; font-weight: bold;'>
-                                            Impact Score: {score}/10
-                                        </span>
-                                    </div>
+                                <div style='text-align: right; margin-bottom: 1rem;'>
+                                    <span style='color: {color}; font-weight: bold; padding: 0.25rem 0.5rem; 
+                                          background-color: #f8f9fa; border-radius: 0.25rem;'>
+                                        Impact Score: {score}/10
+                                    </span>
                                 </div>
                             """, unsafe_allow_html=True)
 
                         # Show change details based on type
                         if change['type'] in ['text_change', 'menu_structure_change']:
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.markdown("**Before:**")
+                            cols = st.columns(2)
+                            with cols[0]:
+                                st.markdown("""
+                                    <div style='background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem;'>
+                                        <strong>Before:</strong>
+                                    </div>
+                                """, unsafe_allow_html=True)
                                 st.code(change.get('before', ''), language=None)
-                            with col2:
-                                st.markdown("**After:**")
+                            with cols[1]:
+                                st.markdown("""
+                                    <div style='background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem;'>
+                                        <strong>After:</strong>
+                                    </div>
+                                """, unsafe_allow_html=True)
                                 st.code(change.get('after', ''), language=None)
 
                         elif change['type'] in ['links_added', 'links_removed']:
-                            st.markdown("**Changed Links:**")
-                            st.code(change.get('after', '') or change.get('before', ''), language=None)
-
-                        # Show AI analysis in a card
-                        if 'analysis' in change:
                             st.markdown("""
-                                <div style='margin-top: 1rem;'>
-                                    <h5>🤖 AI Analysis</h5>
+                                <div style='background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem;'>
+                                    <strong>Changed Links:</strong>
                                 </div>
                             """, unsafe_allow_html=True)
+                            st.code(change.get('after', '') or change.get('before', ''), language=None)
 
+                        # Show AI analysis
+                        if 'analysis' in change:
                             analysis = change['analysis']
-                            cols = st.columns([1, 1])
+                            st.markdown("""
+                                <div style='margin-top: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 0.5rem;'>
+                                    <h5 style='margin-top: 0;'>🤖 AI Analysis</h5>
+                                    <hr style='margin: 0.5rem 0;'>
+                            """, unsafe_allow_html=True)
+
+                            cols = st.columns(2)
                             with cols[0]:
                                 st.markdown(f"""
                                     * **Impact:** {analysis.get('explanation', 'N/A')}
@@ -536,30 +558,9 @@ with tab3:
                                     * **Recommendations:** {analysis.get('recommendations', 'N/A')}
                                 """)
 
-                        st.markdown("---")  # Separator between changes
+                            st.markdown("</div>", unsafe_allow_html=True)
 
-                    # Monitored Pages Section
-                    st.markdown("### 📋 Monitored Pages")
-                    monitored_pages = set()
-                    for change in page_changes:
-                        if 'pages' in change:
-                            for page in change.get('pages', []):
-                                if isinstance(page, dict):
-                                    url = page.get('url', 'Unknown')
-                                    location = page.get('location', 'Unknown')
-                                    monitored_pages.add((location, url))
-
-                    if monitored_pages:
-                        for location, url in sorted(monitored_pages):
-                            st.markdown(f"""
-                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
-                                    <p style='margin: 0;'><strong>{location}</strong></p>
-                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
-                                </div>
-                            """, unsafe_allow_html=True)
-                    else:
-                        st.info("No pages are currently being monitored.")
-
+                        st.markdown("<hr>", unsafe_allow_html=True)
 
 with tab4:
     # Demo section
