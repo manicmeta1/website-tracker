@@ -533,28 +533,27 @@ with tab3:
 
                             st.markdown("---")  # Separator between changes
 
-                    # Collapsible monitored pages section
-                    with st.expander("📋 View Monitored Pages", expanded=False):
-                        st.markdown("### Monitored Pages")
-                        monitored_pages = set()
-                        for change in page_changes:
-                            if 'pages' in change:
-                                for page in change.get('pages', []):
-                                    if isinstance(page, dict):
-                                        url = page.get('url', 'Unknown')
-                                        location = page.get('location', 'Unknown')
-                                        monitored_pages.add((location, url))
+                    # Monitored Pages Section (moved outside the expander)
+                    st.markdown("### 📋 Monitored Pages")
+                    monitored_pages = set()
+                    for change in page_changes:
+                        if 'pages' in change:
+                            for page in change.get('pages', []):
+                                if isinstance(page, dict):
+                                    url = page.get('url', 'Unknown')
+                                    location = page.get('location', 'Unknown')
+                                    monitored_pages.add((location, url))
 
-                        if monitored_pages:
-                            for location, url in sorted(monitored_pages):
-                                st.markdown(f"""
-                                    <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
-                                        <p style='margin: 0;'><strong>{location}</strong></p>
-                                        <p style='margin: 0; color: #666;'><small>{url}</small></p>
-                                    </div>
-                                """, unsafe_allow_html=True)
-                        else:
-                            st.info("No pages are currently being monitored.")
+                    if monitored_pages:
+                        for location, url in sorted(monitored_pages):
+                            st.markdown(f"""
+                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
+                                    <p style='margin: 0;'><strong>{location}</strong></p>
+                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
+                                </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.info("No pages are currently being monitored.")
 
 
 with tab4:
