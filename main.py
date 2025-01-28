@@ -462,21 +462,21 @@ with tab3:
                                     with col1:
                                         st.markdown("**Before:**")
                                         st.text_area("", value=change.get('before', ''), height=150,
-                                                   key=f"before_{change['timestamp']}_{page_key}", disabled=True)
+                                                     key=f"before_{change['timestamp']}_{page_key}", disabled=True)
                                     with col2:
                                         st.markdown("**After:**")
                                         st.text_area("", value=change.get('after', ''), height=150,
-                                                   key=f"after_{change['timestamp']}_{page_key}", disabled=True)
+                                                     key=f"after_{change['timestamp']}_{page_key}", disabled=True)
 
                                 elif change['type'] in ['links_added', 'links_removed']:
                                     st.markdown("**Changed Links:**")
                                     st.text_area("", value=change.get('after', '') or change.get('before', ''),
-                                               height=100, key=f"links_{change['timestamp']}_{page_key}", disabled=True)
+                                                 height=100, key=f"links_{change['timestamp']}_{page_key}", disabled=True)
 
                                 elif change['type'] == 'visual_change' and 'diff_image' in change:
                                     st.markdown("**Visual Changes:**")
                                     st.image(change['diff_image'], caption="Visual differences highlighted",
-                                           use_column_width=True)
+                                             use_column_width=True)
 
                                 # Show AI analysis if available
                                 if 'analysis' in change:
@@ -494,9 +494,9 @@ with tab3:
                     # After showing changes, show monitored pages
                     st.markdown("### 📑 Monitored Pages")
                     monitored_pages = set()
-                    for page_key in changes_by_date_time_page[date][scan_time].items():
-                        if " (" in page_key[0]:
-                            location, url = page_key[0].split(" (", 1)
+                    for page_key, page_changes in changes_by_date_time_page[date][scan_time].items():
+                        if " (" in page_key:
+                            location, url = page_key.split(" (", 1)
                             url = url.rstrip(")")
                             monitored_pages.add((location, url))
 
@@ -520,6 +520,81 @@ with tab3:
                 for website in websites:
                     check_website(website['url'], website.get('crawl_all_pages', False))
                 st.success("All checks completed!")
+
+            # Add a demo generator button just after the manual check
+            if st.button("Generate Demo Changes for Edicanaturals"):
+                st.write("Generating demo changes...")
+                demo_changes = [
+                    {
+                        'type': 'text_change',
+                        'location': 'Homepage',
+                        'before': 'Experience the Power of Nature with Edica Naturals',
+                        'after': 'Experience the Power of Nature with Edica Naturals - Now with Enhanced Formulas',
+                        'url': 'edicanaturals.com',
+                        'timestamp': datetime.now().isoformat(),
+                        'significance_score': 4,
+                        'analysis': {
+                            'explanation': 'Minor update to homepage tagline',
+                            'impact_category': 'Marketing',
+                            'business_relevance': 'Low',
+                            'recommendations': 'Update social media profiles with new tagline if needed'
+                        },
+                        'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
+                    },
+                    {
+                        'type': 'menu_structure_change',
+                        'location': 'Navigation Menu',
+                        'before': '- Home\n- Products\n- About\n- Blog\n- Contact',
+                        'after': '- Home\n- Products\n- About\n- Blog\n- Wellness Guide\n- Contact',
+                        'url': 'edicanaturals.com',
+                        'timestamp': datetime.now().isoformat(),
+                        'significance_score': 7,
+                        'analysis': {
+                            'explanation': 'Added new Wellness Guide section to main navigation',
+                            'impact_category': 'Structure',
+                            'business_relevance': 'High',
+                            'recommendations': 'Monitor user engagement with new section'
+                        },
+                        'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
+                    },
+                    {
+                        'type': 'text_change',
+                        'location': 'Products Page',
+                        'before': 'Our premium menopause relief supplements',
+                        'after': 'Our clinically tested premium menopause relief supplements',
+                        'url': 'edicanaturals.com/products',
+                        'timestamp': datetime.now().isoformat(),
+                        'significance_score': 8,
+                        'analysis': {
+                            'explanation': 'Added clinical testing claim to product description',
+                            'impact_category': 'Product Marketing',
+                            'business_relevance': 'High',
+                            'recommendations': 'Update product marketing materials and ensure clinical test documentation is accessible'
+                        },
+                        'pages': [{'url': 'edicanaturals.com/products', 'location': '/products'}]
+                    },
+                    {
+                        'type': 'links_added',
+                        'location': 'Blog',
+                        'before': '',
+                        'after': 'https://edicanaturals.com/blogs/new-research-on-menopause-relief\nhttps://edicanaturals.com/blogs/natural-supplements-guide',
+                        'url': 'edicanaturals.com/blogs',
+                        'timestamp': datetime.now().isoformat(),
+                        'significance_score': 6,
+                        'analysis': {
+                            'explanation': 'Added new blog articles about menopause relief research',
+                            'impact_category': 'Content',
+                            'business_relevance': 'Medium',
+                            'recommendations': 'Promote new articles on social media channels'
+                        },
+                        'pages': [{'url': 'edicanaturals.com/blogs', 'location': '/blogs'}]
+                    }
+                ]
+
+
+                # Store the demo changes
+                data_manager.store_changes(demo_changes, 'edicanaturals.com')
+                st.success("Demo changes generated! Check the Timeline tab to view them.")
 
             # Show monitoring status
             st.subheader("Monitoring Status")
