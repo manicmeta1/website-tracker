@@ -201,6 +201,11 @@ class WebScraper:
             self._log(f"Starting new crawl of {url}")
             self._log(f"Full site crawling: {'enabled' if crawl_all_pages else 'disabled'}")
 
+            # Progress tracking variables
+            self.total_discovered_pages = 0
+            self.processed_pages = 0
+            self.start_time = time.time()
+
             # Normalize initial URL
             url = self._normalize_url(url)
             base_domain = urlparse(url).netloc
@@ -237,10 +242,13 @@ class WebScraper:
 
             # Extract links
             links = self._extract_links(soup, url, base_domain)
+            self.total_discovered_pages = len(links) + 1  # +1 for the initial page
             self._log(f"Found {len(links)} links on initial page")
 
             # Take screenshot
             screenshot_path = self.screenshot_manager.capture_screenshot(url)
+            self.processed_pages += 1
+            self._log(f"Processed {self.processed_pages}/{self.total_discovered_pages} pages")
 
             # Store initial page data
             pages_data = [{
@@ -263,7 +271,15 @@ class WebScraper:
                 while urls_to_visit and len(self.visited_urls) < 100:
                     next_url = urls_to_visit.pop()
                     if next_url not in self.visited_urls:
+                        elapsed_time = time.time() - self.start_time
+                        avg_time_per_page = elapsed_time / self.processed_pages if self.processed_pages > 0 else 0
+                        remaining_pages = self.total_discovered_pages - self.processed_pages
+                        estimated_time = avg_time_per_page * remaining_pages
+
+                        self._log(f"Progress: {self.processed_pages}/{self.total_discovered_pages} pages")
+                        self._log(f"Estimated time remaining: {int(estimated_time)} seconds")
                         self._log(f"Crawling: {next_url}")
+
                         time.sleep(random.uniform(1, 2))  # Polite delay
 
                         try:
@@ -287,7 +303,11 @@ class WebScraper:
 
                             # Extract more links
                             new_links = self._extract_links(soup, next_url, base_domain)
-                            urls_to_visit.update(new_links - self.visited_urls)
+                            new_unvisited_links = new_links - self.visited_urls
+                            urls_to_visit.update(new_unvisited_links)
+
+                            # Update total discovered pages
+                            self.total_discovered_pages += len(new_unvisited_links)
 
                             # Take screenshot
                             screenshot_path = self.screenshot_manager.capture_screenshot(next_url)
@@ -310,6 +330,7 @@ class WebScraper:
                                 }
                             })
 
+                            self.processed_pages += 1
                             self._log(f"Successfully crawled {next_url}")
                             self._log(f"Found {len(new_links)} new links")
 
@@ -317,23 +338,28 @@ class WebScraper:
                             self._log(f"Error crawling {next_url}: {str(e)}")
                             continue
 
-            self._log(f"Crawl completed. Total pages found: {len(pages_data)}")
+        self._log(f"Crawl completed. Total pages found: {len(pages_data)}")
 
-            return {
-                'url': url,
-                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-                'text_content': pages_data[0]['content']['text_content'],
-                'links': list(links),
-                'content_hash': pages_data[0]['content']['content_hash'],
-                'screenshot_path': pages_data[0]['content']['screenshot_path'],
-                'pages': pages_data,
-                'crawler_logs': self._logs
+        return {
+            'url': url,
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'text_content': pages_data[0]['content']['text_content'],
+            'links': list(links),
+            'content_hash': pages_data[0]['content']['content_hash'],
+            'screenshot_path': pages_data[0]['content']['screenshot_path'],
+            'pages': pages_data,
+            'crawler_logs': self._logs,
+            'progress': {
+                'total_pages': self.total_discovered_pages,
+                'processed_pages': self.processed_pages,
+                'elapsed_time': time.time() - self.start_time
             }
+        }
 
-        except Exception as e:
-            error_msg = f"Failed to scrape website: {str(e)}"
-            self._log(error_msg)
-            raise Exception(error_msg)
+    except Exception as e:
+        error_msg = f"Failed to scrape website: {str(e)}"
+        self._log(error_msg)
+        raise Exception(error_msg)
 
     def get_logs(self):
         return self._logs

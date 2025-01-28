@@ -18,12 +18,36 @@ def _normalize_job_id(url: str) -> str:
 def check_website(url: str, crawl_all_pages: bool = False):
     """Perform website check and detect changes"""
     try:
+        # Create a progress container
+        progress_container = st.empty()
+        status_container = st.empty()
+
         with st.spinner(f"Checking {url}..."):
             # Clear previous content to force new crawl
             change_detector.previous_content = None
 
+            # Create progress bar
+            progress_bar = progress_container.progress(0)
+            status_container.info("Starting website scan...")
+
             # Perform the crawl
             current_content = scraper.scrape_website(url, crawl_all_pages)
+
+            # Update progress based on crawler progress
+            if 'progress' in current_content:
+                progress = current_content['progress']
+                total_pages = progress['total_pages']
+                processed_pages = progress['processed_pages']
+                elapsed_time = progress['elapsed_time']
+
+                # Update progress bar
+                if total_pages > 0:
+                    progress_percentage = min(processed_pages / total_pages * 100, 100)
+                    progress_bar.progress(int(progress_percentage))
+                    status_container.info(
+                        f"Scanned {processed_pages} out of {total_pages} pages\n"
+                        f"Time elapsed: {int(elapsed_time)} seconds"
+                    )
 
             # Detect changes
             changes = change_detector.detect_changes(current_content)
@@ -40,6 +64,10 @@ def check_website(url: str, crawl_all_pages: bool = False):
 
             # Store changes
             data_manager.store_changes(changes, url)
+
+            # Clear progress displays
+            progress_container.empty()
+            status_container.empty()
 
             if len(changes) > 1:  # More than just the site_check
                 st.success(f"Found {len(changes)-1} changes on {url}")
