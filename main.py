@@ -404,8 +404,30 @@ with tab3:
                 for scan_time in sorted(changes_by_date_time[date].keys(), reverse=True):
                     st.markdown(f"#### 🕒 Scan at {scan_time}")
 
-                    # Display changes for this scan
-                    for change in changes_by_date_time[date][scan_time]:
+                    # Show pages information first if available
+                    current_scan_changes = changes_by_date_time[date][scan_time]
+                    if current_scan_changes and 'pages' in current_scan_changes[0]:
+                        st.markdown("##### 📑 Pages Monitored")
+                        monitored_pages = set()
+                        for change in current_scan_changes:
+                            if 'pages' in change:
+                                for page in change['pages']:
+                                    if isinstance(page, dict):
+                                        url = page.get('url', 'Unknown')
+                                        location = page.get('location', 'Unknown')
+                                        monitored_pages.add((url, location))
+
+                        if monitored_pages:
+                            for url, location in sorted(monitored_pages):
+                                st.markdown(f"""
+                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
+                                    <p style='margin: 0;'><strong>{location}</strong></p>
+                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                    # Display individual changes
+                    for change in current_scan_changes:
                         with st.container():
                             # Header with type and URL
                             change_type = change['type'].replace('_', ' ').title()
