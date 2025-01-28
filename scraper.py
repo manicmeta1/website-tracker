@@ -7,10 +7,12 @@ import time
 import random
 from screenshot_manager import ScreenshotManager
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 
 class WebScraper:
     def __init__(self):
@@ -29,12 +31,23 @@ class WebScraper:
         self.retry_count = 3
         self.retry_delay = 2
 
-        # Configure Selenium WebDriver
+        # Configure Chrome options for Replit environment
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        self.driver = webdriver.Chrome(options=chrome_options)
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-software-rasterizer')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.binary_location = "/nix/store/x205pbkd5xh5g4iv0g58xjla55has3cx-chromium-108.0.5359.94/bin/chromium"
+
+        try:
+            self._log("Initializing Chrome WebDriver...")
+            self.driver = webdriver.Chrome(options=chrome_options)
+            self._log("Chrome WebDriver initialized successfully")
+        except Exception as e:
+            self._log(f"Failed to initialize Chrome WebDriver: {str(e)}")
+            self.driver = None
 
         # Add Shopify-specific selectors
         self.shopify_selectors = {
@@ -64,7 +77,8 @@ class WebScraper:
 
     def __del__(self):
         try:
-            self.driver.quit()
+            if hasattr(self, 'driver') and self.driver:
+                self.driver.quit()
         except:
             pass
 
@@ -150,20 +164,24 @@ class WebScraper:
         """Get page content after JavaScript execution"""
         try:
             self._log(f"Loading dynamic content for {url}")
-            self.driver.get(url)
+            if self.driver:
+                self.driver.get(url)
 
-            # Wait for dynamic content to load
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
+                # Wait for dynamic content to load
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
 
-            # Scroll to load lazy content
-            self.driver.execute_script(
-                "window.scrollTo(0, document.body.scrollHeight);"
-            )
-            time.sleep(2)  # Wait for any lazy loading
+                # Scroll to load lazy content
+                self.driver.execute_script(
+                    "window.scrollTo(0, document.body.scrollHeight);"
+                )
+                time.sleep(2)  # Wait for any lazy loading
 
-            return self.driver.page_source
+                return self.driver.page_source
+            else:
+                self._log("WebDriver not initialized, returning None")
+                return None
         except Exception as e:
             self._log(f"Error getting dynamic content: {str(e)}")
             return None
@@ -215,17 +233,18 @@ class WebScraper:
             href = a.get('href', '').strip()
             if href and not href.startswith(('javascript:', 'mailto:', 'tel:', '#', 'data:')):
                 try:
-                    for pattern in ['/collections/', '/products/', '/pages/']:
-                        if pattern in href.lower():
-                            full_url = urljoin(base_url, href)
-                            normalized_url = self._normalize_url(full_url)
-                            if self._is_valid_internal_link(normalized_url, base_domain):
-                                links.add(normalized_url)
-                                self._log(f"Added Shopify {pattern} link: {normalized_url}")
+                    if '/blogs/' in href.lower() or '/pages/' in href.lower():  # Add blog pages
+                        full_url = urljoin(base_url, href)
+                        normalized_url = self._normalize_url(full_url)
+                        if self._is_valid_internal_link(normalized_url, base_domain):
+                            links.add(normalized_url)
+                            self._log(f"Added blog/page link: {normalized_url}")
                 except Exception as e:
-                    self._log(f"Error processing Shopify pattern link {href}: {str(e)}")
+                    self._log(f"Error processing blog/page link {href}: {str(e)}")
 
         self._log(f"Extracted {len(links)} valid internal links")
+        for link in links:
+            self._log(f"Found link: {link}")
         return links
 
     def _scrape_single_page(self, url: str, base_domain: str) -> Dict[str, Any]:
