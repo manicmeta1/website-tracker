@@ -425,25 +425,32 @@ with tab3:
                 for scan_time in sorted(changes_by_date_time_page[date].keys(), reverse=True):
                     st.markdown(f"### 🕒 Scan at {scan_time}")
 
-                    # For each page in this scan
+                    # Display changes first
                     for page_key, page_changes in changes_by_date_time_page[date][scan_time].items():
-                        st.markdown(f"#### 📄 {page_key}")
-
-                        # Display changes for this page
                         for change in page_changes:
+                            # Skip site_check type changes as they don't represent actual changes
+                            if change['type'] == 'site_check':
+                                continue
+
                             with st.container():
                                 st.markdown("---")  # Visual separator between changes
-                                # Header with change type
+
+                                # Create header with page info and change type
                                 change_type = change['type'].replace('_', ' ').title()
-                                st.markdown(f"**Change Type:** {change_type}")
+                                st.markdown(f"""
+                                    <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;'>
+                                        <h4 style='margin: 0;'>📄 {page_key}</h4>
+                                        <p style='margin: 0.5rem 0 0 0; color: #666;'><strong>Change Type:</strong> {change_type}</p>
+                                    </div>
+                                """, unsafe_allow_html=True)
 
                                 # Show significance score if available
                                 if 'significance_score' in change:
                                     score = change['significance_score']
                                     color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
                                     st.markdown(f"""
-                                        <div style='text-align: right;'>
-                                            <span style='color: {color}; font-size: 1.2em;'>
+                                        <div style='text-align: right; margin-bottom: 1rem;'>
+                                            <span style='color: {color}; font-size: 1.2em; padding: 0.5rem 1rem; background-color: #f8f9fa; border-radius: 0.5rem;'>
                                                 Significance: {score}/10
                                             </span>
                                         </div>
@@ -476,7 +483,7 @@ with tab3:
                                     st.markdown("##### 🤖 AI Analysis")
                                     analysis = change['analysis']
                                     st.markdown(f"""
-                                        <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;'>
+                                        <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 1rem 0;'>
                                             <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
                                             <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
                                             <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
@@ -484,7 +491,27 @@ with tab3:
                                         </div>
                                     """, unsafe_allow_html=True)
 
-                        st.markdown("---")  # Add separator between pages
+                    # After showing changes, show monitored pages
+                    st.markdown("### 📑 Monitored Pages")
+                    monitored_pages = set()
+                    for page_key in changes_by_date_time_page[date][scan_time].items():
+                        if " (" in page_key[0]:
+                            location, url = page_key[0].split(" (", 1)
+                            url = url.rstrip(")")
+                            monitored_pages.add((location, url))
+
+                    if monitored_pages:
+                        for location, url in sorted(monitored_pages):
+                            st.markdown(f"""
+                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
+                                    <p style='margin: 0;'><strong>{location}</strong></p>
+                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
+                                </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.info("No pages were monitored in this scan.")
+
+                    st.markdown("---")  # Add separator between scan times
 
         # Manual check button
         if websites:
