@@ -477,63 +477,68 @@ with tab3:
                         if change['type'] == 'site_check':
                             continue
 
-                        with st.container():
-                            # Change header with type and significance
-                            change_type = change['type'].replace('_', ' ').title()
+                        # Create a card-like container for each change
+                        st.markdown(f"""
+                            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;'>
+                                <h4 style='margin: 0;'>{change['type'].replace('_', ' ').title()}</h4>
+                                <p style='margin: 0.5rem 0 0 0; color: #666;'>
+                                    <strong>Location:</strong> {change['location']}
+                                </p>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                        # Show significance score with visual indicator
+                        if 'significance_score' in change:
+                            score = change['significance_score']
+                            color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
                             st.markdown(f"""
-                                <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;'>
-                                    <h4 style='margin: 0;'>{change_type}</h4>
-                                    <p style='margin: 0.5rem 0 0 0; color: #666;'>
-                                        <strong>Location:</strong> {change['location']}
-                                    </p>
+                                <div style='margin-bottom: 1rem;'>
+                                    <div style='background-color: #f0f2f6; padding: 0.5rem; border-radius: 0.25rem; display: inline-block;'>
+                                        <span style='color: {color}; font-weight: bold;'>
+                                            Impact Score: {score}/10
+                                        </span>
+                                    </div>
                                 </div>
                             """, unsafe_allow_html=True)
 
-                            # Show significance score if available
-                            if 'significance_score' in change:
-                                score = change['significance_score']
-                                color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
+                        # Show change details based on type
+                        if change['type'] in ['text_change', 'menu_structure_change']:
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.markdown("**Before:**")
+                                st.code(change.get('before', ''), language=None)
+                            with col2:
+                                st.markdown("**After:**")
+                                st.code(change.get('after', ''), language=None)
+
+                        elif change['type'] in ['links_added', 'links_removed']:
+                            st.markdown("**Changed Links:**")
+                            st.code(change.get('after', '') or change.get('before', ''), language=None)
+
+                        # Show AI analysis in a card
+                        if 'analysis' in change:
+                            st.markdown("""
+                                <div style='margin-top: 1rem;'>
+                                    <h5>🤖 AI Analysis</h5>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            analysis = change['analysis']
+                            cols = st.columns([1, 1])
+                            with cols[0]:
                                 st.markdown(f"""
-                                    <div style='text-align: right;'>
-                                        <span style='color: {color}; font-size: 1.2em;'>
-                                            Significance: {score}/10
-                                        </span>
-                                    </div>
-                                """, unsafe_allow_html=True)
+                                    * **Impact:** {analysis.get('explanation', 'N/A')}
+                                    * **Category:** {analysis.get('impact_category', 'N/A')}
+                                """)
+                            with cols[1]:
+                                st.markdown(f"""
+                                    * **Business Relevance:** {analysis.get('business_relevance', 'N/A')}
+                                    * **Recommendations:** {analysis.get('recommendations', 'N/A')}
+                                """)
 
-                            # Show change details based on type
-                            if change['type'] in ['text_change', 'menu_structure_change']:
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    st.markdown("**Before:**")
-                                    st.text_area("", value=change.get('before', ''), 
-                                               height=100, key=f"before_{change['timestamp']}", 
-                                               disabled=True)
-                                with col2:
-                                    st.markdown("**After:**")
-                                    st.text_area("", value=change.get('after', ''), 
-                                               height=100, key=f"after_{change['timestamp']}", 
-                                               disabled=True)
+                        st.markdown("---")  # Separator between changes
 
-                            elif change['type'] in ['links_added', 'links_removed']:
-                                st.markdown("**Changed Links:**")
-                                st.text_area("", value=change.get('after', '') or change.get('before', ''),
-                                           height=100, key=f"links_{change['timestamp']}", disabled=True)
-
-                            # Show AI analysis if available
-                            if 'analysis' in change:
-                                with st.expander("🤖 View AI Analysis", expanded=False):
-                                    analysis = change['analysis']
-                                    st.markdown(f"""
-                                        - **Impact:** {analysis.get('explanation', 'N/A')}
-                                        - **Category:** {analysis.get('impact_category', 'N/A')}
-                                        - **Business Relevance:** {analysis.get('business_relevance', 'N/A')}
-                                        - **Recommendations:** {analysis.get('recommendations', 'N/A')}
-                                    """)
-
-                            st.markdown("---")  # Separator between changes
-
-                    # Monitored Pages Section (moved outside the expander)
+                    # Monitored Pages Section
                     st.markdown("### 📋 Monitored Pages")
                     monitored_pages = set()
                     for change in page_changes:
