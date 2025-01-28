@@ -418,7 +418,7 @@ with tab3:
                     changes_by_date_time_page[date][scan_time][page_key] = []
                 changes_by_date_time_page[date][scan_time][page_key].append(change)
 
-        # Display changes grouped by date, scan time, and page
+        # Display changes grouped by date
         for date in sorted(changes_by_date_time_page.keys(), reverse=True):
             with st.expander(f"📅 {date}", expanded=True):
                 # For each scan time on this date
@@ -427,62 +427,62 @@ with tab3:
 
                     # For each page in this scan
                     for page_key, page_changes in changes_by_date_time_page[date][scan_time].items():
-                        with st.expander(f"📄 {page_key}", expanded=True):
-                            # Display changes for this page
-                            for change in page_changes:
-                                with st.container():
-                                    # Header with change type
-                                    change_type = change['type'].replace('_', ' ').title()
-                                    st.markdown(f"**Change Type:** {change_type}")
+                        st.markdown(f"#### 📄 {page_key}")
 
-                                    # Show significance score if available
-                                    if 'significance_score' in change:
-                                        score = change['significance_score']
-                                        color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
-                                        st.markdown(f"""
-                                            <div style='text-align: right;'>
-                                                <span style='color: {color}; font-size: 1.2em;'>
-                                                    Significance: {score}/10
-                                                </span>
-                                            </div>
-                                        """, unsafe_allow_html=True)
+                        # Display changes for this page
+                        for change in page_changes:
+                            with st.container():
+                                st.markdown("---")  # Visual separator between changes
+                                # Header with change type
+                                change_type = change['type'].replace('_', ' ').title()
+                                st.markdown(f"**Change Type:** {change_type}")
 
-                                    # Show change details based on type
-                                    if change['type'] in ['text_change', 'menu_structure_change']:
-                                        col1, col2 = st.columns(2)
-                                        with col1:
-                                            st.markdown("**Before:**")
-                                            st.text_area("", value=change.get('before', ''), height=150,
-                                                       key=f"before_{change['timestamp']}_{page_key}", disabled=True)
-                                        with col2:
-                                            st.markdown("**After:**")
-                                            st.text_area("", value=change.get('after', ''), height=150,
-                                                       key=f"after_{change['timestamp']}_{page_key}", disabled=True)
+                                # Show significance score if available
+                                if 'significance_score' in change:
+                                    score = change['significance_score']
+                                    color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
+                                    st.markdown(f"""
+                                        <div style='text-align: right;'>
+                                            <span style='color: {color}; font-size: 1.2em;'>
+                                                Significance: {score}/10
+                                            </span>
+                                        </div>
+                                    """, unsafe_allow_html=True)
 
-                                    elif change['type'] in ['links_added', 'links_removed']:
-                                        st.markdown("**Changed Links:**")
-                                        st.text_area("", value=change.get('after', '') or change.get('before', ''),
-                                                   height=100, key=f"links_{change['timestamp']}_{page_key}", disabled=True)
+                                # Show change details based on type
+                                if change['type'] in ['text_change', 'menu_structure_change']:
+                                    col1, col2 = st.columns(2)
+                                    with col1:
+                                        st.markdown("**Before:**")
+                                        st.text_area("", value=change.get('before', ''), height=150,
+                                                   key=f"before_{change['timestamp']}_{page_key}", disabled=True)
+                                    with col2:
+                                        st.markdown("**After:**")
+                                        st.text_area("", value=change.get('after', ''), height=150,
+                                                   key=f"after_{change['timestamp']}_{page_key}", disabled=True)
 
-                                    elif change['type'] == 'visual_change' and 'diff_image' in change:
-                                        st.markdown("**Visual Changes:**")
-                                        st.image(change['diff_image'], caption="Visual differences highlighted",
-                                               use_column_width=True)
+                                elif change['type'] in ['links_added', 'links_removed']:
+                                    st.markdown("**Changed Links:**")
+                                    st.text_area("", value=change.get('after', '') or change.get('before', ''),
+                                               height=100, key=f"links_{change['timestamp']}_{page_key}", disabled=True)
 
-                                    # Show AI analysis if available
-                                    if 'analysis' in change:
-                                        st.markdown("##### 🤖 AI Analysis")
-                                        analysis = change['analysis']
-                                        st.markdown(f"""
-                                            <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;'>
-                                                <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
-                                                <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
-                                                <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
-                                                <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
-                                            </div>
-                                        """, unsafe_allow_html=True)
+                                elif change['type'] == 'visual_change' and 'diff_image' in change:
+                                    st.markdown("**Visual Changes:**")
+                                    st.image(change['diff_image'], caption="Visual differences highlighted",
+                                           use_column_width=True)
 
-                                    st.divider()  # Add visual separator between changes
+                                # Show AI analysis if available
+                                if 'analysis' in change:
+                                    st.markdown("##### 🤖 AI Analysis")
+                                    analysis = change['analysis']
+                                    st.markdown(f"""
+                                        <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;'>
+                                            <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
+                                            <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
+                                            <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
+                                            <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
+                                        </div>
+                                    """, unsafe_allow_html=True)
 
                         st.markdown("---")  # Add separator between pages
 
