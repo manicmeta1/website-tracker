@@ -384,108 +384,107 @@ with tab3:
     if not changes:
         st.info("No changes detected yet. Changes will appear here once detected.")
     else:
-        # Group changes by date and timestamp
-        changes_by_date_time = {}
+        # Group changes by date, scan time, and page
+        changes_by_date_time_page = {}
         for change in changes:
             date = datetime.fromisoformat(change['timestamp']).date()
             timestamp = datetime.fromisoformat(change['timestamp'])
             scan_time = timestamp.strftime('%H:%M:%S')
 
-            if date not in changes_by_date_time:
-                changes_by_date_time[date] = {}
-            if scan_time not in changes_by_date_time[date]:
-                changes_by_date_time[date][scan_time] = []
-            changes_by_date_time[date][scan_time].append(change)
+            if date not in changes_by_date_time_page:
+                changes_by_date_time_page[date] = {}
+            if scan_time not in changes_by_date_time_page[date]:
+                changes_by_date_time_page[date][scan_time] = {}
 
-        # Display changes grouped by date and scan time
-        for date in sorted(changes_by_date_time.keys(), reverse=True):
+            # Get pages from the change
+            if 'pages' in change:
+                for page in change.get('pages', []):
+                    if isinstance(page, dict):
+                        page_url = page.get('url', 'Unknown')
+                        page_location = page.get('location', '/')
+
+                        # Create key for the page
+                        page_key = f"{page_location} ({page_url})"
+
+                        if page_key not in changes_by_date_time_page[date][scan_time]:
+                            changes_by_date_time_page[date][scan_time][page_key] = []
+
+                        # Add change to the page
+                        changes_by_date_time_page[date][scan_time][page_key].append(change)
+            else:
+                # Handle changes without specific page information
+                page_key = "General Changes"
+                if page_key not in changes_by_date_time_page[date][scan_time]:
+                    changes_by_date_time_page[date][scan_time][page_key] = []
+                changes_by_date_time_page[date][scan_time][page_key].append(change)
+
+        # Display changes grouped by date, scan time, and page
+        for date in sorted(changes_by_date_time_page.keys(), reverse=True):
             with st.expander(f"📅 {date}", expanded=True):
-                # Group by scan time
-                for scan_time in sorted(changes_by_date_time[date].keys(), reverse=True):
-                    st.markdown(f"#### 🕒 Scan at {scan_time}")
+                # For each scan time on this date
+                for scan_time in sorted(changes_by_date_time_page[date].keys(), reverse=True):
+                    st.markdown(f"### 🕒 Scan at {scan_time}")
 
-                    # Show pages information first if available
-                    current_scan_changes = changes_by_date_time[date][scan_time]
-                    if current_scan_changes and 'pages' in current_scan_changes[0]:
-                        st.markdown("##### 📑 Pages Monitored")
-                        monitored_pages = set()
-                        for change in current_scan_changes:
-                            if 'pages' in change:
-                                for page in change['pages']:
-                                    if isinstance(page, dict):
-                                        url = page.get('url', 'Unknown')
-                                        location = page.get('location', 'Unknown')
-                                        monitored_pages.add((url, location))
+                    # For each page in this scan
+                    for page_key, page_changes in changes_by_date_time_page[date][scan_time].items():
+                        with st.expander(f"📄 {page_key}", expanded=True):
+                            # Display changes for this page
+                            for change in page_changes:
+                                with st.container():
+                                    # Header with change type
+                                    change_type = change['type'].replace('_', ' ').title()
+                                    st.markdown(f"**Change Type:** {change_type}")
 
-                        if monitored_pages:
-                            for url, location in sorted(monitored_pages):
-                                st.markdown(f"""
-                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
-                                    <p style='margin: 0;'><strong>{location}</strong></p>
-                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
-                                </div>
-                                """, unsafe_allow_html=True)
+                                    # Show significance score if available
+                                    if 'significance_score' in change:
+                                        score = change['significance_score']
+                                        color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
+                                        st.markdown(f"""
+                                            <div style='text-align: right;'>
+                                                <span style='color: {color}; font-size: 1.2em;'>
+                                                    Significance: {score}/10
+                                                </span>
+                                            </div>
+                                        """, unsafe_allow_html=True)
 
-                    # Display individual changes
-                    for change in current_scan_changes:
-                        with st.container():
-                            # Header with type and URL
-                            change_type = change['type'].replace('_', ' ').title()
-                            st.markdown(f"**Type:** {change_type}")
-                            st.markdown(f"**URL:** {change['url']}")
-                            if 'location' in change:
-                                st.markdown(f"**Location:** {change['location']}")
+                                    # Show change details based on type
+                                    if change['type'] in ['text_change', 'menu_structure_change']:
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            st.markdown("**Before:**")
+                                            st.text_area("", value=change.get('before', ''), height=150,
+                                                       key=f"before_{change['timestamp']}_{page_key}", disabled=True)
+                                        with col2:
+                                            st.markdown("**After:**")
+                                            st.text_area("", value=change.get('after', ''), height=150,
+                                                       key=f"after_{change['timestamp']}_{page_key}", disabled=True)
 
-                            # Show significance score if available
-                            if 'significance_score' in change:
-                                score = change['significance_score']
-                                color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
-                                st.markdown(f"""
-                                    <div style='text-align: right;'>
-                                        <span style='color: {color}; font-size: 1.2em;'>
-                                            Significance: {score}/10
-                                        </span>
-                                    </div>
-                                """, unsafe_allow_html=True)
+                                    elif change['type'] in ['links_added', 'links_removed']:
+                                        st.markdown("**Changed Links:**")
+                                        st.text_area("", value=change.get('after', '') or change.get('before', ''),
+                                                   height=100, key=f"links_{change['timestamp']}_{page_key}", disabled=True)
 
-                            # Show change details based on type
-                            if change['type'] in ['text_change', 'menu_structure_change']:
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    st.markdown("**Before:**")
-                                    st.text_area("", value=change.get('before', ''), height=150, 
-                                               key=f"before_{change['timestamp']}", disabled=True)
-                                with col2:
-                                    st.markdown("**After:**")
-                                    st.text_area("", value=change.get('after', ''), height=150, 
-                                               key=f"after_{change['timestamp']}", disabled=True)
+                                    elif change['type'] == 'visual_change' and 'diff_image' in change:
+                                        st.markdown("**Visual Changes:**")
+                                        st.image(change['diff_image'], caption="Visual differences highlighted",
+                                               use_column_width=True)
 
-                            elif change['type'] in ['links_added', 'links_removed']:
-                                st.markdown("**Changed Links:**")
-                                st.text_area("", value=change.get('after', '') or change.get('before', ''), 
-                                           height=100, key=f"links_{change['timestamp']}", disabled=True)
+                                    # Show AI analysis if available
+                                    if 'analysis' in change:
+                                        st.markdown("##### 🤖 AI Analysis")
+                                        analysis = change['analysis']
+                                        st.markdown(f"""
+                                            <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;'>
+                                                <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
+                                                <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
+                                                <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
+                                                <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
+                                            </div>
+                                        """, unsafe_allow_html=True)
 
-                            elif change['type'] == 'visual_change' and 'diff_image' in change:
-                                st.markdown("**Visual Changes:**")
-                                st.image(change['diff_image'], caption="Visual differences highlighted", 
-                                       use_column_width=True)
+                                    st.divider()  # Add visual separator between changes
 
-                            # Show AI analysis if available
-                            if 'analysis' in change:
-                                st.markdown("##### 🤖 AI Analysis")
-                                analysis = change['analysis']
-                                st.markdown(f"""
-                                    <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;'>
-                                        <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
-                                        <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
-                                        <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
-                                        <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
-                                    </div>
-                                """, unsafe_allow_html=True)
-
-                            st.divider()  # Add visual separator between changes
-
-                    st.markdown("---")  # Add separator between scan times
+                        st.markdown("---")  # Add separator between pages
 
         # Manual check button
         if websites:
