@@ -202,7 +202,7 @@ class WebScraper:
             self._log(f"Full site crawling: {'enabled' if crawl_all_pages else 'disabled'}")
 
             # Progress tracking variables
-            self.total_discovered_pages = 0
+            self.total_discovered_pages = 1  # Start with 1 for the initial page
             self.processed_pages = 0
             self.start_time = time.time()
 
@@ -242,8 +242,9 @@ class WebScraper:
 
             # Extract links
             links = self._extract_links(soup, url, base_domain)
-            self.total_discovered_pages = len(links) + 1  # +1 for the initial page
+            self.total_discovered_pages += len(links)  # Add discovered links to total
             self._log(f"Found {len(links)} links on initial page")
+            self._log(f"Total pages to scan: {self.total_discovered_pages}")
 
             # Take screenshot
             screenshot_path = self.screenshot_manager.capture_screenshot(url)
