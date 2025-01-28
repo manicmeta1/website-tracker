@@ -194,7 +194,7 @@ class WebScraper:
         self._log(f"Extracted {len(links)} valid internal links")
         return links
 
-    def scrape_website(self, url: str, crawl_all_pages: bool = False) -> Dict[str, Any]:
+    def scrape_website(self, url: str, crawl_all_pages: bool = False, progress_callback=None) -> Dict[str, Any]:
         """Scrape website content with improved crawling logic"""
         try:
             self.clear_logs()
@@ -205,6 +205,11 @@ class WebScraper:
             self.total_discovered_pages = 1  # Start with 1 for the initial page
             self.processed_pages = 0
             self.start_time = time.time()
+
+            # Initial progress update
+            if progress_callback:
+                elapsed_time = time.time() - self.start_time
+                progress_callback(self.processed_pages, self.total_discovered_pages, elapsed_time)
 
             # Normalize initial URL
             url = self._normalize_url(url)
@@ -249,7 +254,11 @@ class WebScraper:
             # Take screenshot
             screenshot_path = self.screenshot_manager.capture_screenshot(url)
             self.processed_pages += 1
-            self._log(f"Processed {self.processed_pages}/{self.total_discovered_pages} pages")
+
+            # Update progress after processing initial page
+            if progress_callback:
+                elapsed_time = time.time() - self.start_time
+                progress_callback(self.processed_pages, self.total_discovered_pages, elapsed_time)
 
             # Store initial page data
             pages_data = [{
@@ -281,6 +290,10 @@ class WebScraper:
                             self._log(f"Progress: {self.processed_pages}/{self.total_discovered_pages} pages")
                             self._log(f"Estimated time remaining: {int(estimated_time)} seconds")
                             self._log(f"Crawling: {next_url}")
+
+                            # Update progress before processing next page
+                            if progress_callback:
+                                progress_callback(self.processed_pages, self.total_discovered_pages, elapsed_time)
 
                             time.sleep(random.uniform(1, 2))  # Polite delay
 
