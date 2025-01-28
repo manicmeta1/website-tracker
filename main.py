@@ -371,12 +371,19 @@ with tab3:
     st.header("Website Changes Timeline")
     changes = data_manager.get_recent_changes()
 
+    # Add debug information
+    st.write("Debug Info:")
+    st.write(f"Number of changes found: {len(changes)}")
+
     if not changes:
         st.info("No changes detected yet. Changes will appear here once detected.")
     else:
         # Group changes by date
         changes_by_date = {}
         for change in changes:
+            # Debug: Print raw change data
+            st.write("Raw change data:", change)
+
             date = datetime.fromisoformat(change['timestamp']).date()
             if date not in changes_by_date:
                 changes_by_date[date] = []
@@ -447,6 +454,7 @@ with tab3:
                         st.divider()  # Add visual separator between changes
 
     # Manual check button
+    websites = data_manager.get_website_configs()
     if websites:
         if st.button("Check All Now"):
             st.write("Starting website checks...")
@@ -454,10 +462,10 @@ with tab3:
                 check_website(website['url'], website.get('crawl_all_pages', False))
             st.success("All checks completed!")
 
-    # Show monitoring status
-    st.subheader("Monitoring Status")
-    for job in scheduler.get_jobs():
-        st.write(f"Next check for {job.args[0]}: {job.next_run_time}")
+        # Show monitoring status
+        st.subheader("Monitoring Status")
+        for job in scheduler.get_jobs():
+            st.write(f"Next check for {job.args[0]}: {job.next_run_time}")
 
 with tab4:
     # Demo section

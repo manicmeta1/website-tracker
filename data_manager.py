@@ -98,8 +98,10 @@ class DataManager:
     def get_recent_changes(self, url: Optional[str] = None) -> List[Dict[str, Any]]:
         """Retrieve recent changes, optionally filtered by URL"""
         try:
+            print(f"Loading changes from {self.changes_file}")  # Debug log
             with open(self.changes_file, 'r') as f:
                 changes = json.load(f)
+                print(f"Loaded {len(changes)} changes")  # Debug log
 
             if url:
                 changes = [c for c in changes if c['url'] == url]
