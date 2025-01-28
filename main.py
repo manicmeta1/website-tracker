@@ -442,14 +442,16 @@ with tab3:
 
                         # Show AI analysis if available
                         if 'analysis' in change:
-                            with st.expander("🤖 AI Analysis", expanded=False):
-                                analysis = change['analysis']
-                                st.markdown(f"""
-                                    - **Impact:** {analysis.get('explanation', 'N/A')}
-                                    - **Category:** {analysis.get('impact_category', 'N/A')}
-                                    - **Business Relevance:** {analysis.get('business_relevance', 'N/A')}
-                                    - **Recommendations:** {analysis.get('recommendations', 'N/A')}
-                                """)
+                            st.markdown("##### 🤖 AI Analysis")
+                            analysis = change['analysis']
+                            st.markdown(f"""
+                                <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; margin: 0.5rem 0;'>
+                                    <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
+                                    <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
+                                    <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
+                                    <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
+                                </div>
+                            """, unsafe_allow_html=True)
 
                         st.divider()  # Add visual separator between changes
 
