@@ -278,20 +278,28 @@ with tab1:
 
                                     st.markdown("### 📑 Discovered Pages by Section")
 
-                                    # Display each section in its own expander
+                                    # Display sections using containers to avoid nesting issues
                                     for group_name, pages in grouped_pages.items():
-                                        section_expander = st.expander(f"📁 {group_name.capitalize()} Section - {len(pages)} pages")
-                                        with section_expander:
-                                            # Create a table-like layout for the pages
-                                            for url, location in pages:
-                                                st.markdown(f"""
-                                                <div style='display: flex; justify-content: space-between; 
-                                                            padding: 8px; margin: 4px 0; 
-                                                            background-color: #f8f9fa; border-radius: 4px;'>
-                                                    <div style='flex: 1;'><strong>{location}</strong></div>
-                                                    <div style='flex: 2; color: #666;'><code>{url}</code></div>
-                                                </div>
-                                                """, unsafe_allow_html=True)
+                                        group_container = st.container()
+
+                                        # Use checkbox for collapsible behavior
+                                        is_expanded = st.checkbox(
+                                            f"📁 {group_name.capitalize()} Section - {len(pages)} pages",
+                                            key=f"section_{website['url']}_{group_name}"
+                                        )
+
+                                        if is_expanded:
+                                            with group_container:
+                                                # Display pages in a table-like layout
+                                                for url, location in pages:
+                                                    st.markdown(f"""
+                                                    <div style='display: flex; justify-content: space-between; 
+                                                                padding: 8px; margin: 4px 0; 
+                                                                background-color: #f8f9fa; border-radius: 4px;'>
+                                                        <div style='flex: 1;'><strong>{location}</strong></div>
+                                                        <div style='flex: 2; color: #666;'><code>{url}</code></div>
+                                                    </div>
+                                                    """, unsafe_allow_html=True)
                                 else:
                                     st.warning("No pages have been discovered yet. Try forcing a new crawl.")
 
@@ -309,16 +317,18 @@ with tab1:
                                     st.warning("No crawling statistics available yet.")
 
                             with page_tabs[2]:
-                                # Create a master expander for debug info
-                                with st.expander("🔍 Debug Information", expanded=False):
-                                    if st.checkbox("Show Change Data", key=f"show_changes_{website['url']}"):
-                                        st.json(recent_changes)
+                                # Debug information with toggles instead of nested expanders
+                                st.markdown("### 🔍 Debug Information")
 
-                                    if st.checkbox("Show Pages Data", key=f"show_pages_{website['url']}"):
-                                        st.json(list(monitored_pages) if 'monitored_pages' in locals() else "No pages data")
+                                # Use checkboxes for collapsible sections
+                                if st.checkbox("Show Change Data", key=f"show_changes_{website['url']}"):
+                                    st.json(recent_changes)
 
-                                    if st.checkbox("Show Crawler Logs", key=f"show_logs_{website['url']}"):
-                                        st.code("\n".join(str(log) for log in scraper.get_logs()))
+                                if st.checkbox("Show Pages Data", key=f"show_pages_{website['url']}"):
+                                    st.json(list(monitored_pages) if 'monitored_pages' in locals() else "No pages data")
+
+                                if st.checkbox("Show Crawler Logs", key=f"show_logs_{website['url']}"):
+                                    st.code("\n".join(str(log) for log in scraper.get_logs()))
 
                     # Recent Changes
                     website_changes = [c for c in all_changes if c['url'] == website['url']]
