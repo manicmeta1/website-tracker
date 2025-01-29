@@ -18,32 +18,48 @@ def _normalize_job_id(url: str) -> str:
 def check_website(url: str, crawl_all_pages: bool = False):
     """Perform website check and detect changes"""
     try:
-        # Create a progress container
+        # Create a progress container with animation
         progress_container = st.empty()
         status_container = st.empty()
 
-        with st.spinner(f"Checking {url}..."):
+        with st.spinner(f"🔍 Scanning {url}..."):
             # Clear previous content to force new crawl
             change_detector.previous_content = None
 
-            # Create progress bar
+            # Create animated progress bar
             progress_bar = progress_container.progress(0)
-            status_container.info("Starting website scan...")
+            status_container.markdown("""
+                <div class='status-active'>
+                    ⚡ Starting website scan...
+                </div>
+            """, unsafe_allow_html=True)
 
             def progress_callback(current, total, elapsed_time):
-                # Update progress bar
+                # Update progress bar with animation
                 progress_percentage = min(current / max(total, 1) * 100, 100)
-                progress_bar.progress(int(progress_percentage))
-                # Update status message
-                status_container.info(
-                    f"Scanned {current} out of {total} pages\n"
-                    f"Time elapsed: {int(elapsed_time)} seconds"
-                )
+                progress_container.markdown(f"""
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: {progress_percentage}%">
+                            {int(progress_percentage)}%
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                # Update status message with emoji indicators
+                status = "🔍" if current < total else "✅"
+                status_container.markdown(f"""
+                    <div class='status-active'>
+                        {status} Scanned {current} out of {total} pages<br>
+                        ⏱️ Time elapsed: {int(elapsed_time)} seconds
+                    </div>
+                """, unsafe_allow_html=True)
 
             # Perform the crawl with progress callback
             current_content = scraper.scrape_website(url, crawl_all_pages, progress_callback)
 
-            # Clear progress displays
+            # Clear progress displays with fade-out effect
             progress_container.empty()
             status_container.empty()
 
@@ -60,19 +76,23 @@ def check_website(url: str, crawl_all_pages: bool = False):
                     'url': url
                 }]
 
-            # Store changes
+            # Store changes with visual feedback
             data_manager.store_changes(changes, url)
 
             if len(changes) > 1:  # More than just the site_check
-                st.success(f"Found {len(changes)-1} changes on {url}")
+                st.markdown(f"""
+                    <div class='change-highlight'>
+                        ✨ Found {len(changes)-1} changes on {url}
+                    </div>
+                """, unsafe_allow_html=True)
             else:
-                st.info(f"No changes detected on {url}")
+                st.info(f"👀 No changes detected on {url}")
 
             # Force streamlit to rerun to show updated data
             st.rerun()
 
     except Exception as e:
-        st.error(f"Error checking website: {str(e)}")
+        st.error(f"❌ Error checking website: {str(e)}")
 
 # Initialize components
 data_manager = DataManager()
@@ -89,7 +109,7 @@ scheduler.start()
 # Streamlit UI
 st.set_page_config(layout="wide", page_title="Website Monitor")
 
-# Custom CSS for better visual hierarchy
+# Update the CSS section to add animation styles
 st.markdown("""
 <style>
     .metric-card {
@@ -97,9 +117,15 @@ st.markdown("""
         border-radius: 5px;
         padding: 1rem;
         background-color: white;
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     .status-active {
         color: #28a745;
+        animation: pulse 2s infinite;
     }
     .status-inactive {
         color: #dc3545;
@@ -108,6 +134,30 @@ st.markdown("""
         background-color: #f8f9fa;
         padding: 1rem;
         border-radius: 5px;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    .progress-bar-animated {
+        background: linear-gradient(45deg, 
+            rgba(31,119,180,0.8) 25%, 
+            rgba(31,119,180,1) 50%, 
+            rgba(31,119,180,0.8) 75%);
+        background-size: 200% 100%;
+        animation: progress-animation 2s linear infinite;
+    }
+    @keyframes progress-animation {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    .change-highlight {
+        animation: highlight 1s ease-in-out;
+    }
+    @keyframes highlight {
+        0% { background-color: rgba(255,243,205,1); }
+        100% { background-color: rgba(255,243,205,0); }
     }
 </style>
 """, unsafe_allow_html=True)
