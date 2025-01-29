@@ -10,7 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from diff_visualizer import DiffVisualizer
 from bs4 import BeautifulSoup
 from timeline_visualizer import TimelineVisualizer
-from change_summarizer import ChangeSummarizer # Add import at the top of the file
+from change_summarizer import ChangeSummarizer
 
 def _normalize_job_id(url: str) -> str:
     """Normalize URL for job ID to ensure consistency"""
@@ -514,12 +514,23 @@ def generate_timeline_demo_changes():
 with tab3:
     st.header("Website Changes Timeline")
 
-    # Make demo data generation more prominent
-    st.info("👉 Click the button below to see example changes with visual formatting")
+    # Initialize diff visualizer for timeline
+    timeline_diff_viz = DiffVisualizer(key_prefix="timeline")
+
+    # Add view mode selection
+    diff_view_mode = st.radio(
+        "Diff View Mode",
+        ["Side by Side", "Inline"],
+        key="timeline_diff_view_mode",
+        horizontal=True
+    )
 
     # Use a session state to manage demo data loading
     if 'demo_data_loaded' not in st.session_state:
         st.session_state.demo_data_loaded = False
+
+    # Make demo data generation more prominent
+    st.info("👉 Click the button below to see example changes with visual formatting")
 
     if st.button("🎯 Load Example Timeline Data", key="demo_timeline"):
         try:
@@ -588,13 +599,39 @@ with tab3:
                                     </div>
                                 """, unsafe_allow_html=True)
 
-                                # Show change content in tabs to prevent DOM issues
+                                # Show change content with enhanced diff visualization
                                 if change['type'] in ['text_change', 'menu_structure_change']:
-                                    content_tabs = st.tabs(["Before", "After"])
-                                    with content_tabs[0]:
-                                        st.code(change.get('before', ''), language=None)
-                                    with content_tabs[1]:
-                                        st.code(change.get('after', ''), language=None)
+                                    if 'before' in change and 'after' in change:
+                                        # Use the DiffVisualizer to show changes
+                                        if diff_view_mode == "Side by Side":
+                                            left_diff, right_diff = timeline_diff_viz.create_side_by_side_diff(
+                                                change['before'],
+                                                change['after']
+                                            )
+                                            cols = st.columns(2)
+                                            with cols[0]:
+                                                st.markdown("**Before:**")
+                                                st.markdown(left_diff, unsafe_allow_html=True)
+                                            with cols[1]:
+                                                st.markdown("**After:**")
+                                                st.markdown(right_diff, unsafe_allow_html=True)
+                                        else:
+                                            st.markdown("**Changes:**")
+                                            inline_diff = timeline_diff_viz.create_inline_diff(
+                                                change['before'],
+                                                change['after']
+                                            )
+                                            st.markdown(inline_diff, unsafe_allow_html=True)
+
+                                        # Show diff statistics
+                                        stats = timeline_diff_viz.get_diff_stats(change['before'], change['after'])
+                                        stat_cols = st.columns(3)
+                                        with stat_cols[0]:
+                                            st.metric("Words Added", stats['words_added'])
+                                        with stat_cols[1]:
+                                            st.metric("Words Removed", stats['words_removed'])
+                                        with stat_cols[2]:
+                                            st.metric("Total Changes", stats['total_changes'])
 
                                 # Show AI analysis if available
                                 if 'analysis' in change:
