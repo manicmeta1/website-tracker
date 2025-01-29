@@ -1,0 +1,8 @@
+site_name: Website Tracker
+theme:
+  name: material
+  palette:
+    primary: blue
+nav:
+  - Home: index.md
+repo_url: https://github.com/manicmeta1/website-tracker
