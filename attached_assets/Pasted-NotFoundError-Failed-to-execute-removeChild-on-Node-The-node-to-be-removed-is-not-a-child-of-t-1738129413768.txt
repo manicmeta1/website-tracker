@@ -1,0 +1,23 @@
+NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+at Zj (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:28719)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30155)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:33701)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30323)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30670)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30323)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30670)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30323)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30447)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30323)
+After:
+NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+at Zj (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:28719)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30155)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:33701)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30323)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30670)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30323)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30670)
+at ck (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30323)
+at dk (https://ecdbb533-4cbd-4d50-a6c3-b08e4feb0f09-00-u3f09s7qzs3p.kirk.replit.dev/static/js/index.Phesr84n.js:48:30447)
+at ck (https://ecdbb533-4cbd-4d50-a6c3

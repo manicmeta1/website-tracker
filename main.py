@@ -539,7 +539,7 @@ with tab3:
         demo_changes = generate_timeline_demo_changes()
         data_manager.store_changes(demo_changes, 'edicanaturals.com')
         st.success("✅ Demo data loaded! You should now see the changes below.")
-        time.sleep(1)
+        time.sleep(1)  # Brief pause to ensure data is stored
         st.rerun()
 
     # Add website filter dropdown
@@ -624,28 +624,21 @@ with tab3:
                             """, unsafe_allow_html=True)
                             st.code(change.get('after', ''), language=None)
 
-                    # Show AI analysis in its own container
+                    # Show AI analysis in its own container if available
                     if 'analysis' in change:
                         analysis = change['analysis']
-                        st.markdown("""
+                        st.markdown(f"""
                             <div style='margin-top: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 0.5rem;'>
                                 <h5 style='margin-top: 0;'>🤖 AI Analysis</h5>
                                 <hr style='margin: 0.5rem 0;'>
+                                <div class='analysis-content'>
+                                    <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
+                                    <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
+                                    <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
+                                    <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
+                                </div>
+                            </div>
                         """, unsafe_allow_html=True)
-
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown(f"""
-                                * **Impact:** {analysis.get('explanation', 'N/A')}
-                                * **Category:** {analysis.get('impact_category', 'N/A')}
-                            """)
-                        with col2:
-                            st.markdown(f"""
-                                * **Business Relevance:** {analysis.get('business_relevance', 'N/A')}
-                                * **Recommendations:** {analysis.get('recommendations', 'N/A')}
-                            """)
-
-                        st.markdown("</div>", unsafe_allow_html=True)
 
                     st.markdown("<hr>", unsafe_allow_html=True)
 
