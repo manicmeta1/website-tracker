@@ -8,6 +8,8 @@
       
       
       
+        <link rel="canonical" href="https://manicmeta1.github.io/website-tracker/development/architecture/">
+      
       
         <link rel="prev" href="../contributing/">
       
@@ -407,11 +409,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guide/monitoring/" class="md-nav__link">
+      <a href="../../guide/change-detection/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Monitoring Features
+    Change Detection
   </span>
   
 
@@ -428,11 +430,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guide/change-detection/" class="md-nav__link">
+      <a href="../../guide/monitoring/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Change Detection
+    Monitoring Features
   </span>
   
 
@@ -1336,12 +1338,11 @@
 <p>The Website Tracker platform is built with a modular architecture focusing on scalability, maintainability, and extensibility. This document outlines the key components and their interactions.</p>
 <h2 id="core-components">Core Components</h2>
 <h3 id="1-change-detection-system">1. Change Detection System</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>graph TD
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    A[Website Scraper] --&gt; B[Change Detector]
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    B --&gt; C[Change Scorer]
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    C --&gt; D[Change Summarizer]
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    D --&gt; E[Timeline Visualizer]
-</code></pre></div>
+<pre class="mermaid"><code>graph TD
+    A[Website Scraper] --&gt; B[Change Detector]
+    B --&gt; C[Change Scorer]
+    C --&gt; D[Change Summarizer]
+    D --&gt; E[Timeline Visualizer]</code></pre>
 <h4 id="components">Components:</h4>
 <ul>
 <li><strong>Website Scraper</strong>: Fetches website content using Selenium</li>
@@ -1357,13 +1358,12 @@
 - Visual change comparison
 - Timeline visualization</p>
 <h3 id="3-data-flow">3. Data Flow</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>graph LR
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    A[Website Content] --&gt; B[Scraper]
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    B --&gt; C[Change Detection]
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    C --&gt; D[Analysis]
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    D --&gt; E[Storage]
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    E --&gt; F[Visualization]
-</code></pre></div>
+<pre class="mermaid"><code>graph LR
+    A[Website Content] --&gt; B[Scraper]
+    B --&gt; C[Change Detection]
+    C --&gt; D[Analysis]
+    D --&gt; E[Storage]
+    E --&gt; F[Visualization]</code></pre>
 <h2 id="technical-stack">Technical Stack</h2>
 <h3 id="core-technologies">Core Technologies</h3>
 <ul>
