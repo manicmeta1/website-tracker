@@ -276,18 +276,25 @@ with tab1:
                                             grouped_pages[root_path] = []
                                         grouped_pages[root_path].append((url, location))
 
-                                    st.markdown("The following pages were discovered and are being monitored:")
+                                    st.markdown("### 📑 Discovered Pages by Section")
 
-                                    # Create expandable sections for each group
+                                    # Display groups in a grid layout
                                     for group_name, pages in grouped_pages.items():
-                                        with st.expander(f"📁 {group_name.capitalize()} ({len(pages)} pages)", expanded=False):
-                                            for url, location in pages:
-                                                st.markdown(f"""
-                                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
-                                                    <p style='margin: 0;'><strong>{location}</strong></p>
-                                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
-                                                </div>
-                                                """, unsafe_allow_html=True)
+                                        st.markdown(f"""
+                                        <div style='background-color: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px;'>
+                                            <h4 style='margin: 0;'>📁 {group_name.capitalize()} ({len(pages)} pages)</h4>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+
+                                        # Create columns for better organization
+                                        cols = st.columns([1, 2])
+                                        for url, location in pages:
+                                            with cols[0]:
+                                                st.markdown(f"**{location}**")
+                                            with cols[1]:
+                                                st.markdown(f"`{url}`")
+
+                                        st.markdown("<hr>", unsafe_allow_html=True)
                                 else:
                                     st.warning("No pages have been discovered yet. Try forcing a new crawl.")
 
@@ -305,13 +312,22 @@ with tab1:
                                     st.warning("No crawling statistics available yet.")
 
                             with page_tabs[2]:
-                                with st.expander("🔍 Debug Information", expanded=False):
-                                    st.write("Recent Changes Data:", recent_changes)
-                                    st.write("Pages Found:", monitored_pages if 'monitored_pages' in locals() else "No pages data")
+                                # Use a container instead of an expander for debug info
+                                debug_container = st.container()
+                                show_debug = st.checkbox("🔍 Show Debug Information", 
+                                                       key=f"show_debug_{website['url']}")
 
-                                    # Show crawler logs
-                                    if st.checkbox("Show Crawler Logs", key=f"show_logs_{website['url']}"):
-                                        st.code("\n".join(str(log) for log in scraper.get_logs()))
+                                if show_debug:
+                                    with debug_container:
+                                        st.write("Recent Changes Data:", recent_changes)
+                                        st.write("Pages Found:", 
+                                               monitored_pages if 'monitored_pages' in locals() 
+                                               else "No pages data")
+
+                                        # Show crawler logs
+                                        if st.checkbox("Show Crawler Logs", 
+                                                     key=f"show_logs_{website['url']}"):
+                                            st.code("\n".join(str(log) for log in scraper.get_logs()))
                         else:
                             st.warning("No crawl data available. Try forcing a new crawl.")
 
