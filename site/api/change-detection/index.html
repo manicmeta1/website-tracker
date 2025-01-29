@@ -71,6 +71,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#change-detection-api" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -525,6 +530,19 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Change Detection
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -535,6 +553,133 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changedetector" class="md-nav__link">
+    <span class="md-ellipsis">
+      ChangeDetector
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChangeDetector">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      Methods
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changescorer" class="md-nav__link">
+    <span class="md-ellipsis">
+      ChangeScorer
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChangeScorer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#methods_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Methods
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change Types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Error Handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -675,6 +820,124 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changedetector" class="md-nav__link">
+    <span class="md-ellipsis">
+      ChangeDetector
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChangeDetector">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      Methods
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changescorer" class="md-nav__link">
+    <span class="md-ellipsis">
+      ChangeScorer
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ChangeScorer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#methods_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Methods
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change Types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Error Handling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -692,9 +955,104 @@
   
 
 
-  <h1>Change Detection</h1>
-
-
+<h1 id="change-detection-api">Change Detection API</h1>
+<h2 id="overview">Overview</h2>
+<p>The Change Detection API provides programmatic access to monitor and detect changes in websites. This document covers the core components and their usage.</p>
+<h2 id="components">Components</h2>
+<h3 id="changedetector">ChangeDetector</h3>
+<p>The <code>ChangeDetector</code> class is responsible for identifying changes in website content:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">change_detector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChangeDetector</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">detector</span> <span class="o">=</span> <span class="n">ChangeDetector</span><span class="p">()</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">changes</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">detect_changes</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="methods">Methods</h4>
+<ul>
+<li><code>detect_changes(content: Dict[str, Any]) -&gt; List[Dict[str, Any]]</code></li>
+<li>Detects changes between current and previous content</li>
+<li>Returns a list of detected changes with metadata</li>
+</ul>
+<h3 id="changescorer">ChangeScorer</h3>
+<p>The <code>ChangeScorer</code> class analyzes and scores detected changes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">change_scorer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChangeScorer</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">scorer</span> <span class="o">=</span> <span class="n">ChangeScorer</span><span class="p">()</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">scored_changes</span> <span class="o">=</span> <span class="n">scorer</span><span class="o">.</span><span class="n">score_changes</span><span class="p">(</span><span class="n">changes</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="methods_1">Methods</h4>
+<ul>
+<li><code>analyze_change(change: Dict[str, Any]) -&gt; Dict[str, Any]</code></li>
+<li>Analyzes a single change and returns significance score</li>
+<li><code>score_changes(changes: List[Dict[str, Any]]) -&gt; List[Dict[str, Any]]</code></li>
+<li>Scores multiple changes and sorts by significance</li>
+</ul>
+<h2 id="change-types">Change Types</h2>
+<p>The API detects various types of changes:</p>
+<ul>
+<li>Text changes</li>
+<li>Link additions/removals</li>
+<li>Visual changes</li>
+<li>Menu structure changes</li>
+<li>Style modifications</li>
+</ul>
+<h2 id="example-usage">Example Usage</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">change_detector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChangeDetector</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">change_scorer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChangeScorer</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Initialize components</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">detector</span> <span class="o">=</span> <span class="n">ChangeDetector</span><span class="p">()</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">scorer</span> <span class="o">=</span> <span class="n">ChangeScorer</span><span class="p">()</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Detect changes</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">current_content</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">&#39;Updated content&#39;</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="s1">&#39;2024-01-29T12:00:00Z&#39;</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="s1">&#39;pages&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="s1">&#39;example.com&#39;</span><span class="p">,</span> <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="s1">&#39;/&#39;</span><span class="p">}]</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="p">}</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">changes</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">detect_changes</span><span class="p">(</span><span class="n">current_content</span><span class="p">)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">scored_changes</span> <span class="o">=</span> <span class="n">scorer</span><span class="o">.</span><span class="n">score_changes</span><span class="p">(</span><span class="n">changes</span><span class="p">)</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="c1"># Process scored changes</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="k">for</span> <span class="n">change</span> <span class="ow">in</span> <span class="n">scored_changes</span><span class="p">:</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Change type: </span><span class="si">{</span><span class="n">change</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Significance: </span><span class="si">{</span><span class="n">change</span><span class="p">[</span><span class="s1">&#39;significance_score&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Analysis: </span><span class="si">{</span><span class="n">change</span><span class="p">[</span><span class="s1">&#39;analysis&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="error-handling">Error Handling</h2>
+<p>The API uses standard Python exceptions:</p>
+<ul>
+<li><code>ValueError</code>: Invalid input parameters</li>
+<li><code>KeyError</code>: Missing required fields</li>
+<li><code>Exception</code>: General errors during processing</li>
+</ul>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Regular Monitoring</strong></li>
+<li>Maintain consistent check intervals</li>
+<li>
+<p>Handle rate limits appropriately</p>
+</li>
+<li>
+<p><strong>Error Handling</strong></p>
+</li>
+<li>Implement proper exception handling</li>
+<li>
+<p>Log errors for debugging</p>
+</li>
+<li>
+<p><strong>Performance</strong></p>
+</li>
+<li>Cache frequently accessed data</li>
+<li>
+<p>Use batch processing for multiple changes</p>
+</li>
+<li>
+<p><strong>Security</strong></p>
+</li>
+<li>Validate input data</li>
+<li>Handle sensitive information securely</li>
+</ol>
 
 
 
