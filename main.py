@@ -10,12 +10,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from diff_visualizer import DiffVisualizer
 from bs4 import BeautifulSoup
 from timeline_visualizer import TimelineVisualizer
+from change_summarizer import ChangeSummarizer # Add import at the top of the file
 
 def _normalize_job_id(url: str) -> str:
     """Normalize URL for job ID to ensure consistency"""
     return url.replace('https://', '').replace('http://', '').strip('/')
 
-def check_website(url: str, crawl_all_pages: bool = False):
+async def check_website(url: str, crawl_all_pages: bool = False): #Updated to async
     """Perform website check and detect changes"""
     try:
         # Create a progress container with animation
@@ -76,6 +77,14 @@ def check_website(url: str, crawl_all_pages: bool = False):
                     'url': url
                 }]
 
+            # Analyze changes with AI if there are meaningful changes
+            if len(changes) > 1:  # More than just the site_check
+                try:
+                    analyzed_changes = await change_summarizer.analyze_changes(changes)
+                    changes = analyzed_changes
+                except Exception as e:
+                    st.warning(f"⚠️ AI analysis unavailable: {str(e)}")
+
             # Store changes with visual feedback
             data_manager.store_changes(changes, url)
 
@@ -101,6 +110,7 @@ change_detector = ChangeDetector()
 notifier = EmailNotifier()
 diff_visualizer = DiffVisualizer(key_prefix="demo")
 timeline_visualizer = TimelineVisualizer()
+change_summarizer = ChangeSummarizer() # Add to the Initialize components section after line 101
 
 # Initialize scheduler
 scheduler = BackgroundScheduler()
@@ -233,7 +243,7 @@ with tab1:
                                 # Clear previous content to force new crawl
                                 change_detector.previous_content = None
                                 # Run crawler
-                                check_website(website['url'], website.get('crawl_all_pages', False))
+                                st.experimental_run(check_website, args=(website['url'], website.get('crawl_all_pages', False))) #Run async function
                                 st.success("Crawl completed!")
                             except Exception as e:
                                 st.error(f"Crawl failed: {str(e)}")
@@ -310,7 +320,7 @@ with tab1:
                     st.markdown("##### Quick Actions")
                     if st.button("Check Now", key=f"quick_check_{website['url']}"):
                         with st.spinner("Checking website..."):
-                            check_website(website['url'], website.get('crawl_all_pages', False))
+                            st.experimental_run(check_website, args=(website['url'], website.get('crawl_all_pages', False))) #Run async function
 
                     # Last check time
                     job = next((job for job in scheduler.get_jobs()
