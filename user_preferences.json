@@ -1,12 +1,12 @@
 {
   "notification_preferences": {
     "email_notifications": true,
-    "minimum_significance": 5,
-    "notification_frequency": "immediate"
+    "minimum_significance": 8,
+    "notification_frequency": "hourly"
   },
   "monitoring_preferences": {
-    "default_check_frequency": "6 hours",
-    "crawl_all_pages_default": false
+    "default_check_frequency": "1 hour",
+    "crawl_all_pages_default": true
   },
   "display_preferences": {
     "default_diff_view": "side-by-side",
