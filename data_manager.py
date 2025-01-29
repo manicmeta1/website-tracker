@@ -7,14 +7,83 @@ class DataManager:
     def __init__(self):
         self.changes_file = "changes.json"
         self.config_file = "website_config.json"
+        self.preferences_file = "user_preferences.json"
         self._ensure_files_exist()
 
     def _ensure_files_exist(self):
         """Create necessary files if they don't exist"""
-        for file_path in [self.changes_file, self.config_file]:
+        default_files = {
+            self.changes_file: [],
+            self.config_file: [],
+            self.preferences_file: {
+                "notification_preferences": {
+                    "email_notifications": True,
+                    "minimum_significance": 5,
+                    "notification_frequency": "immediate"
+                },
+                "monitoring_preferences": {
+                    "default_check_frequency": "6 hours",
+                    "crawl_all_pages_default": False
+                },
+                "display_preferences": {
+                    "default_diff_view": "side-by-side",
+                    "color_scheme": "default"
+                }
+            }
+        }
+
+        for file_path, default_content in default_files.items():
             if not os.path.exists(file_path):
                 with open(file_path, 'w') as f:
-                    json.dump([], f)
+                    json.dump(default_content, f, indent=2)
+
+    def store_preferences(self, preferences: Dict[str, Any]):
+        """Store user preferences"""
+        try:
+            with open(self.preferences_file, 'w') as f:
+                json.dump(preferences, f, indent=2)
+        except Exception as e:
+            raise Exception(f"Failed to store preferences: {str(e)}")
+
+    def get_preferences(self) -> Dict[str, Any]:
+        """Get user preferences"""
+        try:
+            with open(self.preferences_file, 'r') as f:
+                return json.load(f)
+        except Exception:
+            # Return default preferences if file doesn't exist or is corrupted
+            return {
+                "notification_preferences": {
+                    "email_notifications": True,
+                    "minimum_significance": 5,
+                    "notification_frequency": "immediate"
+                },
+                "monitoring_preferences": {
+                    "default_check_frequency": "6 hours",
+                    "crawl_all_pages_default": False
+                },
+                "display_preferences": {
+                    "default_diff_view": "side-by-side",
+                    "color_scheme": "default"
+                }
+            }
+
+    def update_website_preferences(self, url: str, preferences: Dict[str, Any]):
+        """Update preferences for a specific website"""
+        configs = self.get_website_configs()
+        for config in configs:
+            if config['url'] == url:
+                config['preferences'] = preferences
+                break
+        self.store_website_configs(configs)
+
+    def store_website_configs(self, configs: List[Dict[str, Any]]):
+        """Store all website configurations"""
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(configs, f, indent=2)
+        except Exception as e:
+            raise Exception(f"Failed to store website configs: {str(e)}")
 
     def store_website_config(self, website: Dict[str, Any]):
         """Store website configuration"""

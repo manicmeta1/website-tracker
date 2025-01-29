@@ -173,7 +173,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3, tab4 = st.tabs(["Dashboard", "Website Management", "Change Timeline", "Demo"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Dashboard", "Website Management", "Change Timeline", "Demo", "Preferences"])
 
 with tab1:
     st.title("📊 Monitoring Dashboard")
@@ -294,8 +294,8 @@ with tab1:
                                                 for url, location in pages:
                                                     st.markdown(f"""
                                                     <div style='display: flex; justify-content: space-between; 
-                                                                padding: 8px; margin: 4px 0; 
-                                                                background-color: #f8f9fa; border-radius: 4px;'>
+                                                                 padding: 8px; margin: 4px 0; 
+                                                                 background-color: #f8f9fa; border-radius: 4px;'>
                                                         <div style='flex: 1;'><strong>{location}</strong></div>
                                                         <div style='flex: 2; color: #666;'><code>{url}</code></div>
                                                     </div>
@@ -714,3 +714,175 @@ with tab4:
 
     st.info("Click the 'Generate Demo Changes' button above to create sample changes with different significance levels, "
             "then go to the Timeline tab to see how changes are visualized with color-coding based on their significance.")
+
+with tab5:
+    st.title("🎛️ Monitoring Preferences")
+
+    # Get current preferences
+    current_preferences = data_manager.get_preferences()
+
+    st.header("Global Preferences")
+
+    # Notification Preferences
+    st.subheader("📨 Notification Settings")
+    notification_prefs = current_preferences.get("notification_preferences", {})
+
+    email_notifications = st.toggle(
+        "Enable Email Notifications",
+        value=notification_prefs.get("email_notifications", True),
+        help="Receive email notifications for website changes"
+    )
+
+    min_significance = st.slider(
+        "Minimum Change Significance for Notifications",
+        min_value=1,
+        max_value=10,
+        value=notification_prefs.get("minimum_significance", 5),
+        help="Only notify for changes with significance above this threshold"
+    )
+
+    notification_frequency = st.selectbox(
+        "Notification Frequency",
+        options=["immediate", "hourly", "daily", "weekly"],
+        index=["immediate", "hourly", "daily", "weekly"].index(
+            notification_prefs.get("notification_frequency", "immediate")
+        ),
+        help="How often to receive notifications"
+    )
+
+    # Monitoring Preferences
+    st.subheader("🔍 Monitoring Settings")
+    monitoring_prefs = current_preferences.get("monitoring_preferences", {})
+
+    default_frequency = st.selectbox(
+        "Default Check Frequency",
+        options=["1 hour", "6 hours", "12 hours", "24 hours"],
+        index=["1 hour", "6 hours", "12 hours", "24 hours"].index(
+            monitoring_prefs.get("default_check_frequency", "6 hours")
+        ),
+        help="Default monitoring frequency for new websites"
+    )
+
+    crawl_all_pages_default = st.toggle(
+        "Monitor All Pages by Default",
+        value=monitoring_prefs.get("crawl_all_pages_default", False),
+        help="When enabled, new websites will be monitored across all pages by default"
+    )
+
+    # Display Preferences
+    st.subheader("🎨 Display Settings")
+    display_prefs = current_preferences.get("display_preferences", {})
+
+    default_diff_view = st.radio(
+        "Default Diff View",
+        options=["side-by-side", "inline"],
+        index=0 if display_prefs.get("default_diff_view", "side-by-side") == "side-by-side" else 1,
+        horizontal=True,
+        help="Choose how to display content changes"
+    )
+
+    color_scheme = st.selectbox(
+        "Color Scheme",
+        options=["default", "dark", "pastel"],
+        index=["default", "dark", "pastel"].index(
+            display_prefs.get("color_scheme", "default")
+        ),
+        help="Choose the color scheme for the interface"
+    )
+
+    # Save preferences button
+    if st.button("Save Preferences", type="primary"):
+        try:
+            new_preferences = {
+                "notification_preferences": {
+                    "email_notifications": email_notifications,
+                    "minimum_significance": min_significance,
+                    "notification_frequency": notification_frequency
+                },
+                "monitoring_preferences": {
+                    "default_check_frequency": default_frequency,
+                    "crawl_all_pages_default": crawl_all_pages_default
+                },
+                "display_preferences": {
+                    "default_diff_view": default_diff_view,
+                    "color_scheme": color_scheme
+                }
+            }
+
+            data_manager.store_preferences(new_preferences)
+            st.success("✅ Preferences saved successfully!")
+
+            # Rerun to apply new preferences
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"Failed to save preferences: {str(e)}")
+
+    # Individual Website Preferences
+    st.header("Website-Specific Preferences")
+    websites = data_manager.get_website_configs()
+
+    if not websites:
+        st.info("No websites configured yet. Add websites in the Website Management tab.")
+    else:
+        for website in websites:
+            with st.expander(f"🌐 {website['url']}", expanded=False):
+                website_prefs = website.get('preferences', {})
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    custom_frequency = st.selectbox(
+                        "Check Frequency",
+                        options=["1 hour", "6 hours", "12 hours", "24 hours"],
+                        index=["1 hour", "6 hours", "12 hours", "24 hours"].index(
+                            website_prefs.get("check_frequency", website.get("frequency", "6 hours"))
+                        ),
+                        key=f"freq_{website['url']}"
+                    )
+
+                    custom_crawl = st.toggle(
+                        "Monitor All Pages",
+                        value=website_prefs.get("crawl_all_pages", website.get("crawl_all_pages", False)),
+                        key=f"crawl_{website['url']}"
+                    )
+
+                with col2:
+                    custom_min_significance = st.slider(
+                        "Minimum Change Significance",
+                        min_value=1,
+                        max_value=10,
+                        value=website_prefs.get("minimum_significance", min_significance),
+                        key=f"sig_{website['url']}"
+                    )
+
+                if st.button("Save Website Preferences", key=f"save_{website['url']}"):
+                    try:
+                        website_preferences = {
+                            "check_frequency": custom_frequency,
+                            "crawl_all_pages": custom_crawl,
+                            "minimum_significance": custom_min_significance
+                        }
+                        data_manager.update_website_preferences(website['url'], website_preferences)
+                        st.success(f"✅ Preferences saved for {website['url']}")
+
+                        # Update scheduler
+                        job_id = f"check_{_normalize_job_id(website['url'])}"
+                        freq_map = {
+                            "1 hour": 3600,
+                            "6 hours": 21600,
+                            "12 hours": 43200,
+                            "24 hours": 86400
+                        }
+
+                        # Update existing job
+                        try:
+                            scheduler.reschedule_job(
+                                job_id,
+                                trigger='interval',
+                                seconds=freq_map[custom_frequency]
+                            )
+                        except Exception as e:
+                            st.warning(f"Note: Scheduler job will be updated on next restart")
+
+                    except Exception as e:
+                        st.error(f"Failed to save preferences: {str(e)}")
