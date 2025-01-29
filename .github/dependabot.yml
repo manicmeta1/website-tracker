@@ -11,3 +11,20 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+    reviewers:
+      - "manicmeta1"
+    assignees:
+      - "manicmeta1"
+    target-branch: "main"
+    versioning-strategy: "auto"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github_actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
