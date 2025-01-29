@@ -1,6 +1,7 @@
+import hashlib
+from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from typing import Dict, List, Any
-import re
 from screenshot_manager import ScreenshotManager
 from change_scorer import ChangeScorer
 
@@ -8,128 +9,123 @@ class ChangeDetector:
     def __init__(self):
         self.previous_content = None
         self.screenshot_manager = ScreenshotManager()
-        self.change_scorer = ChangeScorer()  # Add change scorer
+        self.change_scorer = ChangeScorer()
 
     def detect_changes(self, current_content: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Detects changes between current and previous content"""
+        # Ensure we have a timestamp
+        if 'timestamp' not in current_content:
+            current_content['timestamp'] = datetime.now(timezone.utc).isoformat()
+
+        # Map text to text_content if needed
+        if 'text' in current_content and 'text_content' not in current_content:
+            current_content['text_content'] = current_content['text']
+
+        # Generate content hash if not present
+        if 'content_hash' not in current_content:
+            current_content['content_hash'] = self._generate_content_hash(current_content)
+
+        # Handle first run case
         if not self.previous_content:
             self.previous_content = current_content
-            return []
+            return [{
+                'type': 'site_check',
+                'location': 'Initial Check',
+                'timestamp': current_content['timestamp'],
+                'pages': current_content.get('pages', [])
+            }]
+
+        # Map text to text_content in previous content if needed
+        if 'text' in self.previous_content and 'text_content' not in self.previous_content:
+            self.previous_content['text_content'] = self.previous_content['text']
 
         changes = []
 
-        # Debug logging
-        print(f"Detecting changes for {current_content.get('url', 'Unknown URL')}")
-        print(f"Pages data present: {len(current_content.get('pages', []))} pages")
-
-        # Check content hash for quick comparison
-        if current_content['content_hash'] == self.previous_content['content_hash']:
-            return []
+        # Compare pages
+        page_changes = self._compare_pages(
+            self.previous_content.get('pages', []),
+            current_content.get('pages', []),
+            current_content['timestamp']
+        )
+        changes.extend(page_changes)
 
         # Compare text content
         text_changes = self._compare_text(
-            self.previous_content['text_content'],
-            current_content['text_content'],
+            self.previous_content.get('text_content', ''),
+            current_content.get('text_content', ''),
             current_content['timestamp']
         )
-        if text_changes:
-            # Include pages information in each change
-            for change in text_changes:
-                change['pages'] = current_content.get('pages', [])
-                print(f"Added pages data to text change: {len(change['pages'])} pages")
-            changes.extend(text_changes)
-
-        # Compare links
-        link_changes = self._compare_links(
-            self.previous_content['links'],
-            current_content['links'],
-            current_content['timestamp']
-        )
-        if link_changes:
-            # Include pages information in each change
-            for change in link_changes:
-                change['pages'] = current_content.get('pages', [])
-                print(f"Added pages data to link change: {len(change['pages'])} pages")
-            changes.extend(link_changes)
-
-        # Compare styles (if available)
-        if 'styles' in self.previous_content and 'styles' in current_content:
-            style_changes = self._compare_styles(
-                self.previous_content['styles'],
-                current_content['styles'],
-                current_content['timestamp']
-            )
-            if style_changes:
-                # Include pages information in each change
-                for change in style_changes:
-                    change['pages'] = current_content.get('pages', [])
-                    print(f"Added pages data to style change: {len(change['pages'])} pages")
-                changes.extend(style_changes)
-
-        # Compare menu structure (if available)
-        if 'menu_structure' in self.previous_content and 'menu_structure' in current_content:
-            menu_changes = self._compare_menu_structure(
-                self.previous_content['menu_structure'],
-                current_content['menu_structure'],
-                current_content['timestamp']
-            )
-            if menu_changes:
-                # Include pages information in each change
-                for change in menu_changes:
-                    change['pages'] = current_content.get('pages', [])
-                    print(f"Added pages data to menu change: {len(change['pages'])} pages")
-                changes.extend(menu_changes)
-
-        # Compare screenshots
-        if 'screenshot_path' in self.previous_content and 'screenshot_path' in current_content:
-            try:
-                before_img, after_img, diff_img = self.screenshot_manager.compare_screenshots(
-                    self.previous_content['screenshot_path'],
-                    current_content['screenshot_path']
-                )
-                visual_change = {
-                    'type': 'visual_change',
-                    'location': 'Website Screenshot',
-                    'before_image': before_img,
-                    'after_image': after_img,
-                    'diff_image': diff_img,
-                    'timestamp': current_content['timestamp'],
-                    'pages': current_content.get('pages', [])  # Include pages information
-                }
-                print(f"Added pages data to visual change: {len(visual_change['pages'])} pages")
-                changes.append(visual_change)
-            except Exception as e:
-                print(f"Warning: Failed to compare screenshots: {str(e)}")
+        changes.extend(text_changes)
 
         # Update previous content
         self.previous_content = current_content
 
-        # Score the changes using AI
+        # Score and return changes
         if changes:
-            print(f"Total changes detected: {len(changes)}")
             changes = self.change_scorer.score_changes(changes)
+            return changes
+        else:
+            # If no changes detected, return site check
+            return [{
+                'type': 'site_check',
+                'location': 'Site Check',
+                'timestamp': current_content['timestamp'],
+                'pages': current_content.get('pages', [])
+            }]
 
-        return changes
+    def _generate_content_hash(self, content: Dict[str, Any]) -> str:
+        """Generate a hash of the content for quick comparison"""
+        content_str = str(content.get('text_content', ''))
+        content_str += str(content.get('pages', []))
+        return hashlib.md5(content_str.encode()).hexdigest()
 
     def _compare_text(self, old_text: str, new_text: str, timestamp: str) -> List[Dict[str, Any]]:
         """Compares text content and returns changes"""
         changes = []
 
-        # Split into paragraphs
-        old_paragraphs = re.split(r'\n\s*\n', old_text)
-        new_paragraphs = re.split(r'\n\s*\n', new_text)
+        if old_text != new_text:
+            changes.append({
+                'type': 'text_change',
+                'location': 'Content',
+                'before': old_text,
+                'after': new_text,
+                'timestamp': timestamp
+            })
 
-        for i, (old_p, new_p) in enumerate(zip(old_paragraphs, new_paragraphs)):
-            if old_p != new_p:
-                matcher = SequenceMatcher(None, old_p, new_p)
-                if matcher.ratio() < 0.95:  # Threshold for significant changes
-                    changes.append({
-                        'type': 'text_change',
-                        'location': f'Paragraph {i + 1}',
-                        'before': old_p,
-                        'after': new_p,
-                        'timestamp': timestamp
-                    })
+        return changes
+
+    def _compare_pages(self, old_pages: List[Dict[str, str]], new_pages: List[Dict[str, str]], 
+                      timestamp: str) -> List[Dict[str, Any]]:
+        """Compare page structures and detect additions/removals"""
+        changes = []
+
+        # Convert pages to sets for comparison
+        old_urls = {p['url'] for p in old_pages}
+        new_urls = {p['url'] for p in new_pages}
+
+        # Find added pages
+        added_urls = new_urls - old_urls
+        if added_urls:
+            added_pages = [p for p in new_pages if p['url'] in added_urls]
+            for page in added_pages:
+                changes.append({
+                    'type': 'page_added',
+                    'location': page['location'],
+                    'timestamp': timestamp,
+                    'url': page['url']
+                })
+
+        # Find removed pages
+        removed_urls = old_urls - new_urls
+        if removed_urls:
+            removed_pages = [p for p in old_pages if p['url'] in removed_urls]
+            for page in removed_pages:
+                changes.append({
+                    'type': 'page_removed',
+                    'location': page['location'],
+                    'timestamp': timestamp,
+                    'url': page['url']
+                })
 
         return changes
 
@@ -137,24 +133,28 @@ class ChangeDetector:
         """Compares links and returns changes"""
         changes = []
 
+        # Convert lists to sets for easier comparison
+        old_set = set(old_links)
+        new_set = set(new_links)
+
         # Find added links
-        added = set(new_links) - set(old_links)
+        added = new_set - old_set
         if added:
             changes.append({
                 'type': 'links_added',
                 'location': 'Links',
                 'before': '',
-                'after': '\n'.join(added),
+                'after': '\n'.join(sorted(added)),
                 'timestamp': timestamp
             })
 
         # Find removed links
-        removed = set(old_links) - set(new_links)
+        removed = old_set - new_set
         if removed:
             changes.append({
                 'type': 'links_removed',
                 'location': 'Links',
-                'before': '\n'.join(removed),
+                'before': '\n'.join(sorted(removed)),
                 'after': '',
                 'timestamp': timestamp
             })

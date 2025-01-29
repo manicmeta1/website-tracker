@@ -90,13 +90,17 @@ class DiffVisualizer:
         def count_words(text: str) -> int:
             return len(text.split())
 
-        stats = {
-            'words_added': sum(count_words(text) for op, text in diffs if op == 1),
-            'words_removed': sum(count_words(text) for op, text in diffs if op == -1),
-            'total_changes': len([d for d in diffs if d[0] != 0])
-        }
+        words_added = sum(count_words(text) for op, text in diffs if op == 1)
+        words_removed = sum(count_words(text) for op, text in diffs if op == -1)
 
-        return stats
+        # Count total changes as the sum of added and removed words
+        total_changes = words_added + words_removed
+
+        return {
+            'words_added': words_added,
+            'words_removed': words_removed,
+            'total_changes': total_changes
+        }
 
     def export_diff_html(self, before: str, after: str, char_level: bool = False) -> str:
         """Export the diff as standalone HTML"""
