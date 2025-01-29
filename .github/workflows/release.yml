@@ -10,12 +10,46 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v3
-      
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs-material
+          pip install -r requirements.txt
+
+      - name: Build documentation
+        run: mkdocs build
+
+      - name: Create documentation archive
+        run: |
+          cd site
+          zip -r ../docs.zip .
+          cd ..
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get all commits since last tag
+          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"* %s%n" > CHANGELOG.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          files: |
+            docs.zip
+            CHANGELOG.md
           generate_release_notes: true
           draft: false
           prerelease: false
+          body_path: CHANGELOG.md
