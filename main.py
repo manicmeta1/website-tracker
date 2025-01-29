@@ -478,7 +478,7 @@ with tab2:
 
 def generate_timeline_demo_changes():
     """Generate demo changes for timeline visualization"""
-    demo_changes = [
+    return [
         {
             'type': 'text_change',
             'location': 'Homepage',
@@ -492,8 +492,7 @@ def generate_timeline_demo_changes():
                 'impact_category': 'Marketing',
                 'business_relevance': 'Medium',
                 'recommendations': 'Update social media profiles with new messaging'
-            },
-            'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
+            }
         },
         {
             'type': 'menu_structure_change',
@@ -508,139 +507,112 @@ def generate_timeline_demo_changes():
                 'impact_category': 'Structure',
                 'business_relevance': 'High',
                 'recommendations': 'Ensure new research section has proper content and tracking'
-            },
-            'pages': [{'url': 'edicanaturals.com', 'location': '/'}]
-        },
-        {
-            'type': 'text_change',
-            'location': 'Product Page',
-            'before': 'Natural Menopause Relief Supplement - $49.99',
-            'after': 'Natural Menopause Relief Supplement - Limited Time Offer: $39.99',
-            'url': 'edicanaturals.com/products',
-            'timestamp': datetime.now().isoformat(),
-            'significance_score': 9,
-            'analysis': {
-                'explanation': 'Price reduction and promotion added',
-                'impact_category': 'Pricing',
-                'business_relevance': 'Critical',
-                'recommendations': 'Monitor sales velocity and update marketing campaigns'
-            },
-            'pages': [{'url': 'edicanaturals.com/products', 'location': '/products'}]
+            }
         }
     ]
-    return demo_changes
 
 with tab3:
     st.header("Website Changes Timeline")
 
     # Make demo data generation more prominent
     st.info("👉 Click the button below to see example changes with visual formatting")
+
+    # Use a session state to manage demo data loading
+    if 'demo_data_loaded' not in st.session_state:
+        st.session_state.demo_data_loaded = False
+
     if st.button("🎯 Load Example Timeline Data", key="demo_timeline"):
-        demo_changes = generate_timeline_demo_changes()
-        data_manager.store_changes(demo_changes, 'edicanaturals.com')
-        st.success("✅ Demo data loaded! You should now see the changes below.")
-        time.sleep(1)  # Brief pause to ensure data is stored
-        st.rerun()
+        try:
+            demo_changes = generate_timeline_demo_changes()
+            data_manager.store_changes(demo_changes, 'edicanaturals.com')
+            st.session_state.demo_data_loaded = True
+            st.success("✅ Demo data loaded! You should now see the changes below.")
+        except Exception as e:
+            st.error(f"Failed to load demo data: {str(e)}")
+            st.session_state.demo_data_loaded = False
 
     # Add website filter dropdown
     websites = data_manager.get_website_configs()
     website_urls = ["All Websites"] + [w['url'] for w in websites]
     selected_website = st.selectbox("Select Website", website_urls)
 
-    # Get changes, filtered by selected website if needed
-    if selected_website == "All Websites":
-        changes = data_manager.get_recent_changes()
-    else:
-        changes = data_manager.get_recent_changes(url=selected_website)
+    try:
+        # Get changes, filtered by selected website if needed
+        if selected_website == "All Websites":
+            changes = data_manager.get_recent_changes()
+        else:
+            changes = data_manager.get_recent_changes(url=selected_website)
 
-    if not changes:
-        st.warning("No changes detected yet. Click '🎯 Load Example Timeline Data' above to see example changes.")
-    else:
-        # Create a container for the timeline content
-        timeline_container = st.container()
+        if not changes:
+            st.warning("No changes detected yet. Click '🎯 Load Example Timeline Data' above to see example changes.")
+        else:
+            # Create a container for the timeline content
+            timeline_container = st.container()
 
-        with timeline_container:
-            # Group changes by website
-            grouped_changes = {}
-            for change in changes:
-                if change['type'] == 'site_check':
-                    continue
+            with timeline_container:
+                # Group changes by website
+                grouped_changes = {}
+                for change in changes:
+                    if change['type'] == 'site_check':
+                        continue
 
-                website = change['url']
-                if website not in grouped_changes:
-                    grouped_changes[website] = []
-                grouped_changes[website].append(change)
+                    website = change['url']
+                    if website not in grouped_changes:
+                        grouped_changes[website] = []
+                    grouped_changes[website].append(change)
 
-            # Display changes grouped by website
-            for website, website_changes in grouped_changes.items():
-                st.markdown(f"""
-                    <div style='padding: 1rem; border-radius: 0.5rem; background-color: #f0f2f6; margin-bottom: 1rem;'>
-                        <h2 style='margin: 0;'>🌐 {website}</h2>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                # Create a stable container for each change
-                for change in website_changes:
-                    change_key = f"{website}_{change['timestamp']}_{change['type']}"
-
+                # Display changes grouped by website
+                for website, website_changes in grouped_changes.items():
                     st.markdown(f"""
-                        <div style='background-color: #ffffff; padding: 1rem; border-radius: 0.5rem; 
-                                margin-bottom: 1rem; border: 1px solid #dee2e6;'>
-                            <h4 style='margin: 0; color: #1f77b4;'>{change['type'].replace('_', ' ').title()}</h4>
-                            <p style='margin: 0.5rem 0 0 0; color: #666;'>
-                                <strong>Location:</strong> {change['location']}
-                            </p>
+                        <div style='padding: 1rem; border-radius: 0.5rem; background-color: #f0f2f6; margin-bottom: 1rem;'>
+                            <h2 style='margin: 0;'>🌐 {website}</h2>
                         </div>
                     """, unsafe_allow_html=True)
 
-                    # Show significance score if available
-                    if 'significance_score' in change:
-                        score = change['significance_score']
-                        color = 'red' if score >= 8 else 'orange' if score >= 5 else 'green'
-                        st.markdown(f"""
-                            <div style='text-align: right; margin-bottom: 1rem;'>
-                                <span style='color: {color}; font-weight: bold; padding: 0.25rem 0.5rem; 
-                                      background-color: #f8f9fa; border-radius: 0.25rem;'>
-                                    Impact Score: {score}/10
-                                </span>
-                            </div>
-                        """, unsafe_allow_html=True)
+                    # Create a container for all changes in this website
+                    website_container = st.container()
 
-                    # Create columns for before/after content
-                    if change['type'] in ['text_change', 'menu_structure_change']:
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown("""
-                                <div style='background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem;'>
-                                    <strong>Before:</strong>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            st.code(change.get('before', ''), language=None)
-                        with col2:
-                            st.markdown("""
-                                <div style='background-color: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem;'>
-                                    <strong>After:</strong>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            st.code(change.get('after', ''), language=None)
+                    with website_container:
+                        for change in website_changes:
+                            # Use a unique key for each change element
+                            change_key = f"{website}_{change['timestamp']}_{change['type']}"
 
-                    # Show AI analysis in its own container if available
-                    if 'analysis' in change:
-                        analysis = change['analysis']
-                        st.markdown(f"""
-                            <div style='margin-top: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 0.5rem;'>
-                                <h5 style='margin-top: 0;'>🤖 AI Analysis</h5>
-                                <hr style='margin: 0.5rem 0;'>
-                                <div class='analysis-content'>
-                                    <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
-                                    <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
-                                    <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
-                                    <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
+                            with st.container():
+                                st.markdown(f"""
+                                    <div style='background-color: #ffffff; padding: 1rem; border-radius: 0.5rem; 
+                                            margin-bottom: 1rem; border: 1px solid #dee2e6;'>
+                                        <h4 style='margin: 0; color: #1f77b4;'>{change['type'].replace('_', ' ').title()}</h4>
+                                        <p style='margin: 0.5rem 0 0 0; color: #666;'>
+                                            <strong>Location:</strong> {change['location']}
+                                        </p>
+                                    </div>
+                                """, unsafe_allow_html=True)
 
-                    st.markdown("<hr>", unsafe_allow_html=True)
+                                # Show change content in tabs to prevent DOM issues
+                                if change['type'] in ['text_change', 'menu_structure_change']:
+                                    content_tabs = st.tabs(["Before", "After"])
+                                    with content_tabs[0]:
+                                        st.code(change.get('before', ''), language=None)
+                                    with content_tabs[1]:
+                                        st.code(change.get('after', ''), language=None)
+
+                                # Show AI analysis if available
+                                if 'analysis' in change:
+                                    with st.expander("🤖 View AI Analysis", expanded=False):
+                                        analysis = change['analysis']
+                                        st.markdown(f"""
+                                            <div class='analysis-content'>
+                                                <p><strong>Impact:</strong> {analysis.get('explanation', 'N/A')}</p>
+                                                <p><strong>Category:</strong> {analysis.get('impact_category', 'N/A')}</p>
+                                                <p><strong>Business Relevance:</strong> {analysis.get('business_relevance', 'N/A')}</p>
+                                                <p><strong>Recommendations:</strong> {analysis.get('recommendations', 'N/A')}</p>
+                                            </div>
+                                        """, unsafe_allow_html=True)
+
+                                st.markdown("<hr>", unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"Error loading timeline data: {str(e)}")
 
 with tab4:
     # Demo section
