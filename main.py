@@ -268,14 +268,26 @@ with tab1:
                                                 monitored_pages.add((url, location))
 
                                 if monitored_pages:
-                                    st.markdown("The following pages were discovered and are being monitored:")
+                                    # Group pages by their root path for better organization
+                                    grouped_pages = {}
                                     for url, location in sorted(monitored_pages):
-                                        st.markdown(f"""
-                                        <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
-                                            <p style='margin: 0;'><strong>{location}</strong></p>
-                                            <p style='margin: 0; color: #666;'><small>{url}</small></p>
-                                        </div>
-                                        """, unsafe_allow_html=True)
+                                        root_path = location.split('/')[1] if location.startswith('/') and len(location.split('/')) > 1 else 'Main'
+                                        if root_path not in grouped_pages:
+                                            grouped_pages[root_path] = []
+                                        grouped_pages[root_path].append((url, location))
+
+                                    st.markdown("The following pages were discovered and are being monitored:")
+
+                                    # Create expandable sections for each group
+                                    for group_name, pages in grouped_pages.items():
+                                        with st.expander(f"📁 {group_name.capitalize()} ({len(pages)} pages)", expanded=False):
+                                            for url, location in pages:
+                                                st.markdown(f"""
+                                                <div style='border-left: 3px solid #1f77b4; padding: 10px; margin: 10px 0; background-color: #f8f9fa;'>
+                                                    <p style='margin: 0;'><strong>{location}</strong></p>
+                                                    <p style='margin: 0; color: #666;'><small>{url}</small></p>
+                                                </div>
+                                                """, unsafe_allow_html=True)
                                 else:
                                     st.warning("No pages have been discovered yet. Try forcing a new crawl.")
 
@@ -293,13 +305,13 @@ with tab1:
                                     st.warning("No crawling statistics available yet.")
 
                             with page_tabs[2]:
-                                st.markdown("### 🔍 Debug Information")
-                                st.write("Recent Changes Data:", recent_changes)
-                                st.write("Pages Found:", monitored_pages if 'monitored_pages' in locals() else "No pages data")
+                                with st.expander("🔍 Debug Information", expanded=False):
+                                    st.write("Recent Changes Data:", recent_changes)
+                                    st.write("Pages Found:", monitored_pages if 'monitored_pages' in locals() else "No pages data")
 
-                                # Show crawler logs
-                                if st.checkbox("Show Crawler Logs", key=f"show_logs_{website['url']}"):
-                                    st.code("\n".join(str(log) for log in scraper.get_logs()))
+                                    # Show crawler logs
+                                    if st.checkbox("Show Crawler Logs", key=f"show_logs_{website['url']}"):
+                                        st.code("\n".join(str(log) for log in scraper.get_logs()))
                         else:
                             st.warning("No crawl data available. Try forcing a new crawl.")
 
